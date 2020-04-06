@@ -1,8 +1,13 @@
+if [ $(id -u) -ne 0 ]; then
+  echo "Script must be run as root"
+  exit 1
+fi
+
 apt-get update && apt-get upgrade
 
 # Install docker
-apt-get install apt-transport-https ca-certificates curl software-properties-common
+apt-get install -y apt-transport-https ca-certificates curl software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add --
 add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu  $(lsb_release -cs)  stable"
 apt-get update
-apt-get install docker-ce
+apt-get install -y docker-ce
