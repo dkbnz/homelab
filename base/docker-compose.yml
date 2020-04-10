@@ -1,0 +1,24 @@
+version: "3.3"
+
+networks:
+  proxy:
+    external: true
+
+services:
+
+  traefik:
+    image: traefik:v2.0
+    container_name: traefik
+    networks:
+      - proxy
+    ports:
+      - 80:80
+    volumes:
+      - ./traefik.yml:/traefik.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
