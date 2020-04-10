@@ -16,3 +16,6 @@ apt-get install -y docker-ce docker-compose
 groupadd docker
 usermod -aG docker $USER
 newgrp docker
+
+# Run all containers
+bash docker-compose-up.sh
