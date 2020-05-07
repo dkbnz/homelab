@@ -4,9 +4,9 @@ stacks=(base folding)
 
 for stack in ${stacks[*]} 
 do
-    cd $stack
+    cd ./stacks/$stack
     docker-compose down
-    cd ..
+    cd ../..
 done
 
 docker network rm proxy
