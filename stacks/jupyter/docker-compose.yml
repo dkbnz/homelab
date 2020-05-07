@@ -11,7 +11,7 @@ services:
     container_name: jupyter
     networks:
       - proxy
-    command: ["--user root"]
+    command: ["start-notebook.sh", "--NotebookApp.password='${JUPYTER_TOKEN}'", "--user root"]
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - GRANT_SUDO=yes
