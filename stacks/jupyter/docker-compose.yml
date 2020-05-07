@@ -5,6 +5,7 @@ networks:
     external: true
 
 services:
+
   jupyter:
     image: jupyter/tensorflow-notebook
     container_name: jupyter
@@ -20,4 +21,3 @@ services:
       - "traefik.http.routers.jupyter.entrypoints=http"
       - "traefik.http.routers.jupyter.rule=Host(`jupyter.${DOMAIN}`)"
       - "traefik.http.services.jupyter.loadbalancer.server.port=8888"
-
