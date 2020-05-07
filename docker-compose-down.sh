@@ -1,12 +1,7 @@
 export DOMAIN="home.lab"
 
-stacks=(base folding)
-
-for stack in ${stacks[*]} 
-do
-    cd ./stacks/$stack
-    docker-compose down
-    cd ../..
+for compose_file in ./stacks/*/docker-compose.yml; do
+    docker-compose -f $compose_file down &
 done
 
 docker network rm proxy
