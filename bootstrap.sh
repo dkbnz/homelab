@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ $(id -u) -ne 0 -o $EUID -eq 0 ]; then
   echo "Script must be run using sudo (not as root user)"
   exit 1
@@ -18,4 +20,4 @@ usermod -aG docker $USER
 newgrp docker
 
 # Run all containers
-bash docker-compose-up.sh
+./stacks-up
