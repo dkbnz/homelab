@@ -1,0 +1,23 @@
+version: "3.3"
+
+networks:
+  proxy:
+    external: true
+
+services:
+  jupyter:
+    image: jupyter/tensorflow-notebook
+    container_name: jupyter
+    networks:
+     - proxy
+    environment:
+     - JUPYTER_ENABLE_LAB=yes
+    restart: unless-stopped
+    volumes:
+     - ~/jupyter_data:/home/jovyan/work
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jupyter.entrypoints=http"
+      - "traefik.http.routers.jupyter.rule=Host(`jupyter.${DOMAIN}`)"
+      - "traefik.http.services.jupyter.loadbalancer.server.port=8888"
+

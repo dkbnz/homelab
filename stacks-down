@@ -1,7 +1,9 @@
-docker network create proxy
+#!/bin/bash
 
 export DOMAIN="home.lab"
 
 for compose_file in ./stacks/*/docker-compose.yml; do
-    docker-compose -f $compose_file up -d &
+    docker-compose -f $compose_file down
 done
+
+docker network rm proxy
