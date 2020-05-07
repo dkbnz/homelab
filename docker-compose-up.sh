@@ -6,7 +6,7 @@ stacks=(base folding)
 
 for stack in ${stacks[*]} 
 do
-    cd $stack
+    cd ./stacks/$stack
     docker-compose up -d
-    cd ..
+    cd ../..
 done
