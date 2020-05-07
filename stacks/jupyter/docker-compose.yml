@@ -6,16 +6,19 @@ networks:
 
 services:
 
-  jupyter:
+  jupyter: # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/common.html
     image: jupyter/tensorflow-notebook
     container_name: jupyter
     networks:
-     - proxy
+      - proxy
+    command: ["--user root"]
     environment:
-     - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_ENABLE_LAB=yes
+      - GRANT_SUDO=yes
+      - RESTARTABLE=yes
     restart: unless-stopped
     volumes:
-     - ~/jupyter_data:/home/jovyan/work
+      - ~/homelab_data/jupyter:/home/jovyan
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jupyter.entrypoints=http"
