@@ -1,7 +1,5 @@
 #!/bin/bash
 
-export RANDOM_PASSWORD
-
 for compose_file in ./stacks/*/docker-compose.yml; do
     docker-compose -f $compose_file down
 done
