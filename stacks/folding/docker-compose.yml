@@ -1,4 +1,4 @@
-version: "3.3"
+version: "2.4"
 
 networks:
   proxy:
@@ -12,15 +12,19 @@ services:
     networks:
       - proxy
     command: ["--allow=0/0", "--web-allow=0/0"] # Allow connections from non-localhost ip addresses
+    volumes:
+      - ~/homelab_data/folding:/opt/fahclient/work    
     environment:
       - USER=plateofash
       - TEAM=0
       - ENABLE_GPU=false
       - ENABLE_SMP=true
-      - POWER=light
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.folding-at-home.entrypoints=http"
       - "traefik.http.routers.folding-at-home.rule=Host(`folding.${DOMAIN}`)"
       - "traefik.http.services.folding-at-home.loadbalancer.server.port=7396"
+    cpus: 2 # Allocate 2/8 CPUs (25%)
+    cpu_shares: 64 # Limit shares to ~6%, It will only dip down if other processes need resources
+    mem_limit: 512M
