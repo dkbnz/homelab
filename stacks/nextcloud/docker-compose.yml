@@ -3,8 +3,6 @@ version: "3.3"
 networks:
   proxy:
     external: true
-  default:
-    driver: bridge
 
 services:
 
@@ -13,8 +11,10 @@ services:
     container_name: nextcloud-redis
     hostname: nextcloud-redis
     environment:
-      REDIS_PASSWORD: ${RANDOM_PASSWORD}
+      - REDIS_PASSWORD=${RANDOM_PASSWORD}
     restart: always
+    networks:
+      - default
 
   nextcloud-db:
     image: mariadb
@@ -26,9 +26,11 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${RANDOM_PASSWORD}
       - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
-      - MYSQL_USER=${NEXCLOUD_DB_USER}
+      - MYSQL_USER=${NEXTCLOUD_DB_USER}
       - MYSQL_DATABASE=nextcloud
       - MYSQL_INITDB_SKIP_TZINFO=1 # Fix db startup issues
+    networks:
+      - default
 
   nextcloud-app:
     image: nextcloud
@@ -38,14 +40,15 @@ services:
       - nextcloud-db
       - nextcloud-redis
     environment:
-        REDIS_HOST: nextcloud-redis
-        REDIS_HOST_PASSWORD: ${RANDOM_PASSWORD}
+      - REDIS_HOST=nextcloud-redis
+      -  REDIS_HOST_PASSWORD=${RANDOM_PASSWORD}
     volumes:
       - ~/homelab_data/nextcloud/app:/var/www/html
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.jupyter.entrypoints=http"
-      - "traefik.http.routers.jupyter.rule=Host(`nextcloud.${DOMAIN}`)"
-      - "traefik.http.services.jupyter.loadbalancer.server.port=80"
+      - "traefik.http.routers.nextcloud.entrypoints=http"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.${DOMAIN}`)"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
     networks:
       - proxy
+      - default
