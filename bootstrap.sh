@@ -19,5 +19,7 @@ groupadd docker
 usermod -aG docker $USER
 newgrp docker
 
+apt-get install -y pwgen
+
 # Run all containers
 ./stacks-up
