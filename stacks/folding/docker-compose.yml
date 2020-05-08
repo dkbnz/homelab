@@ -13,7 +13,7 @@ services:
       - proxy
     command: ["--allow=0/0", "--web-allow=0/0"] # Allow connections from non-localhost ip addresses
     volumes:
-      - ~/homelab_data/folding:/opt/fahclient/work    
+      - ${DATA_DIR}/folding:/opt/fahclient/work
     environment:
       - USER=plateofash
       - TEAM=0

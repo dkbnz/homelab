@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
     user: root
     volumes:
-      - ~/homelab_data/jupyter:/home/jovyan
+      - ${DATA_DIR}/jupyter:/home/jovyan
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jupyter.entrypoints=http"
