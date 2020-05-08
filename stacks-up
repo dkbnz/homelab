@@ -2,8 +2,6 @@
 
 docker network create proxy
 
-export RANDOM_PASSWORD=$(pwgen -cn 20 1)
-
 for compose_file in ./stacks/*/docker-compose.yml; do
     docker-compose -f $compose_file up -d
 done
