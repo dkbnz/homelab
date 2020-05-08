@@ -1,0 +1,21 @@
+version: "3.3"
+
+networks:
+  proxy:
+    external: true
+
+services:
+
+  bitwarden:
+    image: bitwardenrs/server:latest
+    container_name: bitwarden
+    restart: unless-stopped
+    volumes:
+      - ${DATA_DIR}/bitwarden:/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bitwarden.entrypoints=http"
+      - "traefik.http.routers.bitwarden.rule=Host(`bitwarden.${DOMAIN}`)"
+      - "traefik.http.services.bitwarden.loadbalancer.server.port=80"

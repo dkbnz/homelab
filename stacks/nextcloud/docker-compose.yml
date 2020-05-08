@@ -22,7 +22,7 @@ services:
     command: --transaction-isolation=READ-COMMITTED --log-bin=ROW
     restart: always
     volumes:
-      - ~/homelab_data/nextcloud/database:/var/lib/mysql
+      - ${DATA_DIR}/nextcloud/database:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=${RANDOM_PASSWORD}
       - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
@@ -43,7 +43,7 @@ services:
       - REDIS_HOST=nextcloud-redis
       -  REDIS_HOST_PASSWORD=${RANDOM_PASSWORD}
     volumes:
-      - ~/homelab_data/nextcloud/app:/var/www/html
+      - ${DATA_DIR}/nextcloud/app:/var/www/html
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nextcloud.entrypoints=http"
