@@ -11,12 +11,13 @@ services:
     container_name: jupyter
     networks:
       - proxy
-    command: ["start-notebook.sh", "--NotebookApp.password='${JUPYTER_TOKEN}'", "--user root"]
+    command: ["start-notebook.sh", "--NotebookApp.password=${JUPYTER_TOKEN}"]
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - GRANT_SUDO=yes
       - RESTARTABLE=yes
     restart: unless-stopped
+    user: root
     volumes:
       - ~/homelab_data/jupyter:/home/jovyan
     labels:
