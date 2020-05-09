@@ -3,6 +3,8 @@ version: "3.3"
 networks:
   proxy:
     external: true
+  shared-postgres:
+    external: true
 
 services:
 
@@ -16,32 +18,15 @@ services:
     networks:
       - default
 
-  nextcloud-db:
-    image: mariadb
-    container_name: nextcloud-db
-    command: --transaction-isolation=READ-COMMITTED --log-bin=ROW
-    restart: always
-    volumes:
-      - ${DATA_DIR}/nextcloud/database:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=${RANDOM_PASSWORD}
-      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
-      - MYSQL_USER=${NEXTCLOUD_DB_USER}
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_INITDB_SKIP_TZINFO=1 # Fix db startup issues
-    networks:
-      - default
-
   nextcloud-app:
     image: nextcloud
     container_name: nextcloud-app
     restart: always
     depends_on:
-      - nextcloud-db
       - nextcloud-redis
     environment:
       - REDIS_HOST=nextcloud-redis
-      -  REDIS_HOST_PASSWORD=${RANDOM_PASSWORD}
+      - REDIS_HOST_PASSWORD=${RANDOM_PASSWORD}
     volumes:
       - ${DATA_DIR}/nextcloud/app:/var/www/html
     labels:
@@ -51,4 +36,5 @@ services:
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
     networks:
       - proxy
+      - shared-postgres
       - default
