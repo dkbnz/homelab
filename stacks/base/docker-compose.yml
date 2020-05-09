@@ -3,6 +3,8 @@ version: "3.3"
 networks:
   proxy:
     external: true
+  shared-postgres:
+    external: true
 
 services:
 
@@ -22,3 +24,15 @@ services:
       - "traefik.http.routers.traefik.entrypoints=http"
       - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+  shared-postgres:
+    image: postgres
+    container_name: shared-postgres
+    volumes:
+      - ${DATA_DIR}/shared-postgres:/var/lib/postgresql/data
+      - ./create_databases.sh:/docker-entrypoint-initdb.d/create_databases.sh:ro
+    environment:
+      - POSTGRES_MULTIPLE_DATABASES=${MULTIPLE_DB_CREATE}
+      - POSTGRES_PASSWORD=${SHARED_POSTGRES_PASSWORD}
+    networks:
+      - shared-postgres
