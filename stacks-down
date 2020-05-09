@@ -1,8 +1,8 @@
 #!/bin/bash
 
 for compose_file in ./stacks/*/docker-compose.yml; do
-    docker-compose -f $compose_file down
+    docker-compose -f $compose_file down --remove-orphans
 done
 
 docker network rm proxy
-docker network rm shared-postgres
+docker network rm database 
