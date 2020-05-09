@@ -15,9 +15,9 @@ services:
       - SELF_URL_PATH=http://ttrss.{$DOMAIN}/
       - DB_HOST=shared-postgres
       - DB_PORT=5432
-      - DB_NAME=ttrss
-      - DB_USER=ttrss
-      - DB_PASS=password2
+      - DB_NAME=${TTRSS_DB}
+      - DB_USER=${TTRSS_DB}
+      - DB_PASS=${TTRSS_DB_PASSWORD}
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
