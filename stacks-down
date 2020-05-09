@@ -5,3 +5,4 @@ for compose_file in ./stacks/*/docker-compose.yml; do
 done
 
 docker network rm proxy
+docker network rm shared-postgres
