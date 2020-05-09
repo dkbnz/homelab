@@ -31,10 +31,30 @@ services:
     image: postgres
     container_name: postgres
     volumes:
-      - ${DATA_DIR}/shared-postgres:/var/lib/postgresql/data
+      - ${DATA_DIR}/postgres:/var/lib/postgresql/data
       - ./create_databases.sh:/docker-entrypoint-initdb.d/create_databases.sh:ro
     environment:
-      - POSTGRES_MULTIPLE_DATABASES=${NEXTCLOUD_DB}:${NEXTCLOUD_DB_PASSWORD},${TTRS_DB}:${TTRS_DB_PASSWORD}
+      - POSTGRES_MULTIPLE_DATABASES=${NEXTCLOUD_DB}:${NEXTCLOUD_DB_PASSWORD},${TTRSS_DB}:${TTRSS_DB_PASSWORD}
       - POSTGRES_PASSWORD=${SHARED_POSTGRES_PASSWORD}
     networks:
       - database
+
+
+  pgadmin:
+    image: dpage/pgadmin4:4.18
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=secret
+      - PGADMIN_LISTEN_PORT=15432
+    volumes:
+      - ${DATA_DIR}/pgadmin:/var/lib/pgadmin
+    networks:
+      - database
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.entrypoints=http"
+      - "traefik.http.routers.pgadmin.rule=Host(`pgadmin.${DOMAIN}`)"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=15432"
+      - "traefik.docker.network=proxy"

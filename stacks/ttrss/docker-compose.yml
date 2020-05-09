@@ -11,6 +11,8 @@ services:
   ttrss:
     image: wangqiru/ttrss
     container_name: ttrss
+    volumes:
+      - ./configure-db.php:/configure-db.php
     environment:
       - SELF_URL_PATH=http://ttrss.{$DOMAIN}/
       - DB_HOST=postgres
@@ -24,6 +26,7 @@ services:
       - "traefik.http.routers.ttrss.entrypoints=http"
       - "traefik.http.routers.ttrss.rule=Host(`ttrss.${DOMAIN}`)"
       - "traefik.http.services.ttrss.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
     networks:
       - proxy
       - database
