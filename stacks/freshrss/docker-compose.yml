@@ -1,0 +1,28 @@
+version: "3.3"
+
+networks:
+  proxy:
+    external: true
+  database:
+    external: true
+
+services:
+
+  freshrss:
+      image: freshrss/freshrss
+      restart: unless-stopped
+      volumes:
+        - ${DATA_DIR}/freshrss/data:/var/www/FreshRSS/data
+        - ${DATA_DIR}/freshrss/extensions:/var/www/FreshRSS/extensions
+      environment:
+        - CRON_MIN=*/20
+        - TZ=America/Chicago
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.freshrss.entrypoints=http"
+        - "traefik.http.routers.freshrss.rule=Host(`news.${DOMAIN}`)"
+        - "traefik.http.services.freshrss.loadbalancer.server.port=80"
+        - "traefik.docker.network=proxy"
+      networks:
+        - proxy
+        - database
