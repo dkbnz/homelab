@@ -32,7 +32,7 @@ services:
       - ${DATA_DIR}/shared-postgres:/var/lib/postgresql/data
       - ./create_databases.sh:/docker-entrypoint-initdb.d/create_databases.sh:ro
     environment:
-      - POSTGRES_MULTIPLE_DATABASES=${MULTIPLE_DB_CREATE}
+      - POSTGRES_MULTIPLE_DATABASES=${MULTIPLE_DB_STRING}
       - POSTGRES_PASSWORD=${SHARED_POSTGRES_PASSWORD}
     networks:
       - shared-postgres
