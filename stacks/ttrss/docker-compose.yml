@@ -3,7 +3,7 @@ version: "3.3"
 networks:
   proxy:
     external: true
-  shared-postgres:
+  database:
     external: true
 
 services:
@@ -13,7 +13,7 @@ services:
     container_name: ttrss
     environment:
       - SELF_URL_PATH=http://ttrss.{$DOMAIN}/
-      - DB_HOST=shared-postgres
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=${TTRSS_DB}
       - DB_USER=${TTRSS_DB}
@@ -26,4 +26,4 @@ services:
       - "traefik.http.services.ttrss.loadbalancer.server.port=80"
     networks:
       - proxy
-      - shared-postgres
+      - database
