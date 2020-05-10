@@ -1,0 +1,17 @@
+version: 3
+services:
+
+  borg-rclone-autobackup:
+    image: mannkind/borg-rclone-autobackup
+    restart: unless-stopped
+    volumes:
+      - ${DATA_DIR}:/data:ro
+    environment:
+      - BACKUP_NAME=homelab
+      - BACKUP_LOCATION=${BACKUP_LOCATION}
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE}
+      - BACKUP_ENCRYPTION_KEY=${BACKUP_ENCRYPTION_KEY}
+      - BACKUP_PRUNE=--keep-daily=${KEEP_DAILY} --keep-weekly=${KEEP_WEEKLY}
+      - BACKUP_NOW=true
+      - B2_ID=${B2_ID}
+      - B2_KEY=${B2_KEY}
