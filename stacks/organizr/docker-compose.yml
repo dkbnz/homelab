@@ -15,9 +15,11 @@ services:
       - TZ=America/Chicago
     volumes:
       - ${DATA_DIR}/organizr:/config
+    networks:
+      - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.entrypoints=http"
-      - "traefik.http.routers.nextcloud.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      - "traefik.http.routers.organizr.entrypoints=http"
+      - "traefik.http.routers.organizr.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.services.organizr.loadbalancer.server.port=80"
     restart: unless-stopped
