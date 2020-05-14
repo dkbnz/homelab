@@ -5,6 +5,12 @@ providers:
   docker:
     exposedByDefault: false
 
+accessLog:
+  filePath: "/logs/access.log"
+
+log:
+  level: DEBUG
+
 # Entrypoint configuration to be updated with HTTPS
 entryPoints:
   http:

@@ -25,3 +25,9 @@ services:
       - "traefik.http.routers.jupyter.entrypoints=http"
       - "traefik.http.routers.jupyter.rule=Host(`jupyter.${DOMAIN}`)"
       - "traefik.http.services.jupyter.loadbalancer.server.port=8888"
+      - "traefik.http.middlewares.jupyter.errors.status=400-599"
+      - "traefik.http.middlewares.jupyter.errors.service=organizr@docker"
+      - "traefik.http.middlewares.jupyter.errors.query=/?error={status}.html&return=jupyter.${DOMAIN}"
+      - "traefik.http.routers.jupyter.middlewares=auth"
+      - "traefik.http.middlewares.auth.forwardauth.address=http://organizr/api/?v1/auth&group=0"
+
