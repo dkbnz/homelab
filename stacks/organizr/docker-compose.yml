@@ -7,11 +7,12 @@ networks:
 services:
 
   organizr:
-    image: organizrtools/organizr-v2
+    image: organizr/organizr
     container_name: organizr
     environment:
       - PUID=1000
       - PGID=1000
+      - TZ=${TZ}
     volumes:
       - ${DATA_DIR}/organizr:/config
     networks:
