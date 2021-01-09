@@ -1,0 +1,91 @@
+version: '3'
+
+services:
+
+  rtorrent:
+	image: linuxserver/rutorrent
+	env_file : ${CONFIG_DIR}/autopirate/rtorrent.env
+	ports:
+      - 36258:36258
+	volumes:
+      - ${MEDIA_DIR}:/media
+      - ${DATA_DIR}/autopirate/rtorrent:/config
+	networks:
+      - internal
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    env_file : ${CONFIG_DIR}/autopirate/sonarr.env
+    volumes:
+      - ${DATA_DIR}/autopirate/sonarr:/config
+      - ${MEDIA_DIR}:/media
+    networks:
+      - internal
+
+  radarr:
+    image: linuxserver/radarr:latest
+    env_file : ${CONFIG_DIR}/autopirate/radarr.env
+    volumes:
+      - ${DATA_DIR}/autopirate/radarr:/config
+      - ${MEDIA_DIR}:/media
+    networks:
+      - internal
+
+  lidarr:
+    image: linuxserver/lidarr:latest
+    env_file : ${CONFIG_DIR}/autopirate/lidarr.env
+    volumes:
+      - ${DATA_DIR}/autopirate/lidarr:/config
+      - ${MEDIA_DIR}:/media
+    networks:
+      - internal
+
+  nzbget:
+    image: linuxserver/nzbget
+    env_file : ${CONFIG_DIR}/autopirate/nzbget.env  
+    volumes:
+      - ${DATA_DIR}/autopirate/nzbget:/config
+      - ${MEDIA_DIR}:/data
+    networks:
+      - internal
+
+  jackett:
+    image: linuxserver/jackett:latest
+    env_file : ${CONFIG_DIR}/autopirate/jackett.env
+    volumes:
+      - ${DATA_DIR}/autopirate/jackett:/config
+    networks:
+      - internal
+
+  lazylibrarian:
+    image: linuxserver/lazylibrarian:latest
+    env_file : ${CONFIG_DIR}/autopirate/lazylibrarian.env
+	volumes:
+      - ${DATA_DIR}/autopirate/lazylibrarian:/config
+      - ${MEDIA_DIR}:/media
+	networks:
+      - internal
+
+  calibre-server:
+    image: regueiro/calibre-server
+    volumes:
+      - ${MEDIA_DIR}/ebooks/calibre/:/opt/calibre/library
+    networks:
+      - internal
+
+  jellyfin:
+    image: linuxserver/jellyfin
+    env_file: ${CONFIG_DIR}/autopirate/jellyfin.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DATA_DIR}/autopirate/jellyfin:/config
+      - ${CACHE_DIR}/autopirate/jellyfin:/cache
+      - ${MEDIA_DIR}:/data
+    deploy:
+      labels:
+        - traefik.frontend.rule=Host:jellyfin.example.com
+        - traefik.docker.network=traefik_public
+        - traefik.port=8096
+    networks:
+      - internal
+ 
