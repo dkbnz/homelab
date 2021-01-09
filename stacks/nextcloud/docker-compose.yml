@@ -1,7 +1,7 @@
 version: "3.3"
 
 networks:
-  proxy:
+  traefik_public:
     external: true
   database:
     external: true
@@ -34,8 +34,8 @@ services:
       - "traefik.http.routers.nextcloud.entrypoints=http"
       - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.${DOMAIN}`)"
       - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
-      - "traefik.docker.network=proxy"
+      - "traefik.docker.network=traefik_public"
     networks:
-      - proxy
+      - traefik_public
       - database
       - default
