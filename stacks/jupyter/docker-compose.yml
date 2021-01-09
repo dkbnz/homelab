@@ -1,7 +1,7 @@
 version: "3.3"
 
 networks:
-  proxy:
+  traefik_public:
     external: true
 
 services:
@@ -9,13 +9,8 @@ services:
   jupyter: # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/common.html
     image: jupyter/tensorflow-notebook
     container_name: jupyter
-    networks:
-      - proxy
     command: ["start-notebook.sh", "--NotebookApp.password=${JUPYTER_TOKEN}"]
-    environment:
-      - JUPYTER_ENABLE_LAB=yes
-      - GRANT_SUDO=yes
-      - RESTARTABLE=yes
+    env-file: ${ENV_DIR}/jupyter/jupyter.env
     restart: unless-stopped
     user: root
     volumes:
@@ -30,4 +25,5 @@ services:
       - "traefik.http.middlewares.jupyter.errors.query=/?error={status}.html&return=jupyter.${DOMAIN}"
       - "traefik.http.routers.jupyter.middlewares=auth"
       - "traefik.http.middlewares.auth.forwardauth.address=http://organizr/api/?v1/auth&group=0"
-
+    networks:
+      - traefik_public

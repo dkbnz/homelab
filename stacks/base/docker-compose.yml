@@ -1,7 +1,7 @@
 version: "3.3"
 
 networks:
-  proxy:
+  traefik_public:
     external: true
   database:
     external: true
@@ -12,9 +12,10 @@ services:
     image: traefik:v2.0
     container_name: traefik
     networks:
-      - proxy
+      - traefik_public
     ports:
       - 80:80
+      - 443:443
     volumes:
       - ./traefik.yml:/traefik.yml:ro
       - ${DATA_DIR}/traefik:/logs
@@ -39,53 +40,23 @@ services:
     networks:
       - database
 
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@example.com
-      - PGADMIN_DEFAULT_PASSWORD=secret
-      - PGADMIN_LISTEN_PORT=15432
-    volumes:
-      - ${DATA_DIR}/pgadmin:/var/lib/pgadmin
-    networks:
-      - database
-      - proxy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pgadmin.entrypoints=http"
-      - "traefik.http.routers.pgadmin.rule=Host(`pgadmin.${DOMAIN}`)"
-      - "traefik.http.services.pgadmin.loadbalancer.server.port=15432"
-      - "traefik.docker.network=proxy"
-
   traefik-forward-auth:
     image: thomseddon/traefik-forward-auth:2
-    environment:
-      - WHITELIST=dk.barrett+gh@hotmail.com
-      - DEFAULT_PROVIDER=generic-oauth
-      - SECRET=<random secret>
-      - INSECURE_COOKIE=true # Example assumes no https, do not use in production
-      - PROVIDERS_GENERIC_OAUTH_AUTH_URL=https://github.com/login/oauth/authorize
-      - PROVIDERS_GENERIC_OAUTH_TOKEN_URL=https://github.com/login/oauth/access_token
-      - PROVIDERS_GENERIC_OAUTH_USER_URL=https://api.github.com/user
-      - PROVIDERS_GENERIC_OAUTH_CLIENT_ID=<client id>
-      - PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET=<client secret>
-    labels: 
+    env-file: ${ENV_DIR}/base/auth.env
+    labels:
       - "traefik.http.middlewares.traefik-forward-auth.forwardauth.address=http://traefik-forward-auth:41$"
       - "traefik.http.middlewares.traefik-forward-auth.forwardauth.authResponseHeaders=X-Forwarded-User"
-                                                                                                            - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
- 
+
   heimdall:
     image: linuxserver/heimdall:latest
-    env_file: /var/data/config/autopirate/heimdall.env
+    env_file: ${ENV_DIR}/base/heimdall.env
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/data/heimdall:/config
-    networks:
-      - proxy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.heimdall.entrypoints=http"
       - "traefik.http.routers.heimdall.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.services.pgadmin.loadbalancer.server.port=15432"
-
+      - "traefik.http.services.heimdall.loadbalancer.server.port=80"
+    networks:
+      - traefik_public

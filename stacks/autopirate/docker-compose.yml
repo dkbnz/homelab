@@ -1,91 +1,111 @@
-version: '3'
+version: "3"
+
+networks:
+  traefik_public:
+    external: true
 
 services:
 
   rtorrent:
-	image: linuxserver/rutorrent
-	env_file : ${CONFIG_DIR}/autopirate/rtorrent.env
-	ports:
+    image: linuxserver/rutorrent
+    env_file : ${ENV_DIR}/autopirate/rtorrent.env
+    ports:
       - 36258:36258
-	volumes:
-      - ${MEDIA_DIR}:/media
+    volumes:
       - ${DATA_DIR}/autopirate/rtorrent:/config
-	networks:
-      - internal
+      - ${MEDIA_DIR}:/media
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rtorrent.rule=Host(`rtorrent.${DOMAIN}`)"
+      - "traefik.http.routers.rtorrent.entrypoints=web"
+      - "traefik.docker.network=traefik_public"
+    networks:
+      - default
+      - traefik_public
 
   sonarr:
     image: linuxserver/sonarr:latest
-    env_file : ${CONFIG_DIR}/autopirate/sonarr.env
+    env_file : ${ENV_DIR}/autopirate/sonarr.env
     volumes:
       - ${DATA_DIR}/autopirate/sonarr:/config
       - ${MEDIA_DIR}:/media
     networks:
-      - internal
+      - default
+      - traefik_public
 
   radarr:
     image: linuxserver/radarr:latest
-    env_file : ${CONFIG_DIR}/autopirate/radarr.env
+    env_file : ${ENV_DIR}/autopirate/radarr.env
     volumes:
       - ${DATA_DIR}/autopirate/radarr:/config
       - ${MEDIA_DIR}:/media
     networks:
       - internal
+    networks:
+      - default
+      - traefik_public
 
   lidarr:
     image: linuxserver/lidarr:latest
-    env_file : ${CONFIG_DIR}/autopirate/lidarr.env
+    env_file : ${ENV_DIR}/autopirate/lidarr.env
     volumes:
       - ${DATA_DIR}/autopirate/lidarr:/config
       - ${MEDIA_DIR}:/media
     networks:
-      - internal
+      - default
+      - traefik_public
 
   nzbget:
     image: linuxserver/nzbget
-    env_file : ${CONFIG_DIR}/autopirate/nzbget.env  
+    env_file : ${ENV_DIR}/autopirate/nzbget.env
     volumes:
       - ${DATA_DIR}/autopirate/nzbget:/config
       - ${MEDIA_DIR}:/data
     networks:
-      - internal
+      - default
+      - traefik_public
 
   jackett:
     image: linuxserver/jackett:latest
-    env_file : ${CONFIG_DIR}/autopirate/jackett.env
+    env_file : ${ENV_DIR}/autopirate/jackett.env
     volumes:
       - ${DATA_DIR}/autopirate/jackett:/config
     networks:
-      - internal
+      - default
+      - traefik_public
 
   lazylibrarian:
     image: linuxserver/lazylibrarian:latest
-    env_file : ${CONFIG_DIR}/autopirate/lazylibrarian.env
-	volumes:
+    env_file : ${ENV_DIR}/autopirate/lazylibrarian.env
+    volumes:
       - ${DATA_DIR}/autopirate/lazylibrarian:/config
       - ${MEDIA_DIR}:/media
-	networks:
-      - internal
+    networks:
+      - default
+      - traefik_public
 
   calibre-server:
     image: regueiro/calibre-server
     volumes:
       - ${MEDIA_DIR}/ebooks/calibre/:/opt/calibre/library
     networks:
-      - internal
+      - default
+      - traefik_public
 
   jellyfin:
     image: linuxserver/jellyfin
-    env_file: ${CONFIG_DIR}/autopirate/jellyfin.env
+    env_file: ${ENV_DIR}/autopirate/jellyfin.env
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${DATA_DIR}/autopirate/jellyfin:/config
       - ${CACHE_DIR}/autopirate/jellyfin:/cache
       - ${MEDIA_DIR}:/data
-    deploy:
-      labels:
-        - traefik.frontend.rule=Host:jellyfin.example.com
-        - traefik.docker.network=traefik_public
-        - traefik.port=8096
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${DOMAIN}`)"
+      - "traefik.http.routers.jellyfin.entrypoints=web"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "traefik.docker.network=traefik_public"
     networks:
-      - internal
- 
+      - default
+      - traefik_public
