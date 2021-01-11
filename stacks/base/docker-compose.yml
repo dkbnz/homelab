@@ -15,7 +15,6 @@ services:
       - traefik_public
     ports:
       - 80:80
-      - 443:443
     volumes:
       - ./traefik.yml:/traefik.yml:ro
       - ${DATA_DIR}/traefik:/logs
@@ -26,6 +25,7 @@ services:
       - "traefik.http.routers.traefik.entrypoints=http"
       - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.secure.basicauth.users=${BASIC_AUTH_USERS}"
 
 # Shared postgres database for applications that don't require standalone database server.
   postgres:
@@ -40,23 +40,17 @@ services:
     networks:
       - database
 
-  traefik-forward-auth:
-    image: thomseddon/traefik-forward-auth:2
-    env-file: ${ENV_DIR}/base/auth.env
-    labels:
-      - "traefik.http.middlewares.traefik-forward-auth.forwardauth.address=http://traefik-forward-auth:41$"
-      - "traefik.http.middlewares.traefik-forward-auth.forwardauth.authResponseHeaders=X-Forwarded-User"
-
   heimdall:
     image: linuxserver/heimdall:latest
     env_file: ${ENV_DIR}/base/heimdall.env
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - /var/data/heimdall:/config
+      - ${DATA_DIR}/heimdall:/config
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.heimdall.entrypoints=http"
       - "traefik.http.routers.heimdall.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.heimdall.middlewares=secure"
       - "traefik.http.services.heimdall.loadbalancer.server.port=80"
     networks:
       - traefik_public
