@@ -11,7 +11,7 @@ services:
   freshrss:
       image: freshrss/freshrss
       restart: unless-stopped
-      env-file: ${ENV_DIR}/freshrss/freshrss.env
+      env_file: ${ENV_DIR}/freshrss/freshrss.env
       volumes:
         - ${DATA_DIR}/freshrss/data:/var/www/FreshRSS/data
         - ${DATA_DIR}/freshrss/extensions:/var/www/FreshRSS/extensions

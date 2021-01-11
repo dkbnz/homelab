@@ -23,6 +23,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.secure.basicauth.users=${BASIC_AUTH_USERS}"
+      - "traefik.http.middlewares.secure.basicauth.removeHeader=true"
       - "traefik.http.routers.traefik.entrypoints=http"
       - "traefik.http.routers.traefik.middlewares=secure"
       - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
