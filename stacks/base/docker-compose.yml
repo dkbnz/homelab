@@ -22,10 +22,11 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      - "traefik.http.middlewares.secure.basicauth.users=${BASIC_AUTH_USERS}"
       - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.middlewares=secure"
       - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-      - "traefik.http.middlewares.secure.basicauth.users=${BASIC_AUTH_USERS}"
 
 # Shared postgres database for applications that don't require standalone database server.
   postgres:
