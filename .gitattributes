@@ -1,1 +1,1 @@
-#pattern  filter=crypt diff=crypt merge=crypt
+terraform.tfstate*  filter=crypt diff=crypt merge=crypt
