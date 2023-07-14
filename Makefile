@@ -13,3 +13,9 @@ tf-apply:
 
 tf-destroy:
 	docker compose run --rm terraform destroy
+
+tf-fmt:
+	docker compose run --rm terraform fmt
+
+tf-validate:
+	docker compose run --rm terraform validate
