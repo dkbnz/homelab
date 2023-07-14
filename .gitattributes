@@ -1,1 +1,2 @@
 terraform.tfstate*  filter=crypt diff=crypt merge=crypt
+*_key.*  filter=crypt diff=crypt merge=crypt
