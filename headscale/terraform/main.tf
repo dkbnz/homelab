@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     google = {
-      source = "hashicorp/google"
+      source  = "hashicorp/google"
       version = "4.51.0"
     }
   }
@@ -15,13 +15,38 @@ provider "google" {
   zone    = "us-central1-c"
 }
 
-resource "google_compute_network" "vpc_network" {
-  name = "terraform-network"
+resource "google_compute_firewall" "ssh" {
+  name    = "firewall-external-ssh"
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["external-ssh"]
 }
 
-resource "google_compute_instance" "vm_instance" {
-  name         = "terraform-instance"
-  machine_type = "e2-micro"
+resource "google_compute_firewall" "web" {
+  name    = "firewall-external-web"
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443"]
+  }
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["external-web"]
+}
+
+resource "google_compute_address" "headscale" {
+  name = "ipv4-address"
+}
+
+resource "google_compute_instance" "headscale" {
+  name                      = "headscale-instance"
+  depends_on                = [google_compute_firewall.ssh, google_compute_firewall.web]
+  tags                      = ["external-ssh", "external-web"]
+  machine_type              = "e2-micro"
+  allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
@@ -30,8 +55,14 @@ resource "google_compute_instance" "vm_instance" {
   }
 
   network_interface {
-    network = google_compute_network.vpc_network.name
+    network = "default"
     access_config {
+      nat_ip = google_compute_address.headscale.address
     }
   }
+
+}
+
+output "headscale_ip_address" {
+  value = google_compute_address.headscale.address
 }
