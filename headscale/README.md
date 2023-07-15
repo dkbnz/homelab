@@ -27,4 +27,3 @@ After creating your GCP account, create or modify the following resources to ena
         Click "Create" to create the key and save the key file to your system.
 
     You can read more about service account keys in Google's documentation.
-
