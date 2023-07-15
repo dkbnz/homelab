@@ -41,6 +41,14 @@ resource "google_compute_address" "headscale" {
   name = "ipv4-address"
 }
 
+data "template_file" "nginx" {
+  template = file("install_headscale.tpl")
+
+  vars = {
+    ufw_allow_nginx = "Nginx HTTP"
+  }
+}
+
 resource "google_compute_instance" "headscale" {
   name                      = "headscale-instance"
   depends_on                = [google_compute_firewall.ssh, google_compute_firewall.web]
@@ -61,6 +69,7 @@ resource "google_compute_instance" "headscale" {
     }
   }
 
+  metadata_startup_script = data.template_file.nginx.rendered
 }
 
 output "headscale_ip_address" {
