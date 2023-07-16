@@ -10,7 +10,7 @@ terraform {
 provider "google" {
   credentials = file("gcp_key.json")
 
-  project = "vocal-lamp-369704"
+  project = var.google_project_id
   region  = "us-central1"
   zone    = "us-central1-c"
 }
@@ -41,11 +41,20 @@ resource "google_compute_address" "headscale" {
   name = "ipv4-address"
 }
 
-data "template_file" "nginx" {
-  template = file("install_headscale.tpl")
+data "template_file" "headscale_config" {
+  template = file("headscale_config.yaml.tpl")
+  
+  vars = {
+    server_url = var.server_url
+  }
+}
+
+data "template_file" "install_headscale" {
+  template = file("install_headscale.sh.tpl")
 
   vars = {
-    ufw_allow_nginx = "Nginx HTTP"
+    version = var.headscale_version
+    config = data.template_file.headscale_config.rendered
   }
 }
 
@@ -69,7 +78,7 @@ resource "google_compute_instance" "headscale" {
     }
   }
 
-  metadata_startup_script = data.template_file.nginx.rendered
+  metadata_startup_script = data.template_file.install_headscale.rendered
 }
 
 output "headscale_ip_address" {
