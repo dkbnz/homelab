@@ -1,8 +1,5 @@
 version: '3'
 services:
-  alpine:
-    image: alpine
-
   terraform:
     image: hashicorp/terraform:latest
     volumes:

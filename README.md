@@ -2,15 +2,27 @@
 
 >*labroratory (noun)*: a place providing opportunity for experimentation, observation, or practice in a field of study.
 
-This repository contains various scripts and files for my home server.
-Used for debian based distributions.
+Currently experimenting with software-defined mesh virtual private networks (Tailscale/Headscale).
 
-Currently installs docker and starts various containers using docker-compose.
+This repository contains various scripts and files for my home server. Used for debian based distributions.
 
 ## Usage
+
+### Creating the headscale control server
+
+Ensure you have created a google cloud project and downloaded a service account key to `headscale/terraform/gcp_key.json`. See [headscale/README.md](./headscale/README.md) for more detail.
+
 ```shell
-git clone git@github.com:dkbarrett/homelab.git
-cd homelab
+make tf-apply
+```
+
+This will initialise a vm instance and install headscale on it.
+
+### Initialise local services
+
+```shell
+git clone git@github.com:dkbnz/homelab.git
+cd homelab/services
 ./stacks-up
 ```
 
