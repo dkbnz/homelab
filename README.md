@@ -2,28 +2,47 @@
 
 >*labroratory (noun)*: a place providing opportunity for experimentation, observation, or practice in a field of study.
 
-Currently experimenting with software-defined mesh virtual private networks (Tailscale/Headscale).
-
 This repository contains various scripts and files for my home server. Used for debian based distributions.
 
-## Usage
+## Design Decisions
+
+- Infrastructure-as-code is used where possible, eliminating manual processes and allowing for an iterative approach to infrastructure management.
+- Connections to services are managed using a point-to-point VPN ([tailscale](https://github.com/tailscale/tailscale), utilising the opensource control server, [headscale](https://github.com/juanfont/headscale)). This prevents the need for portforwarding & static IPs for the server. It minimises the attack surface by reducing exposed services to the internet.
+- Sensitive data, such as terraform state files and keys, are counter-intuitively version controlled right here in this public repository using [transcrypt](https://github.com/elasticdog/transcrypt). It is a bash script that utilises OpenSSL's symmetric cipher routines to seamlessly encrypt/decrypt files specified in the `.gitattributes` file.
+- Deployments are made using the [3musketeers](https://3musketeers.io/guide/) pattern, to provide a consistent, OS agnostic, developer experience.
+
+## Setting Up
+
+### Prerequisites (Manual Steps)
+
+- A google cloud project and a service account key downloaded to `headscale/terraform/gcp_key.json`.
+- Domain to use for the headscale control server.
+- Server or VM with a fresh debian install, setup with ssh key access. This will run the services.
+- Machine to orchestrate the installation from with the [3musketeers](https://3musketeers.io/guide/) installed:
+    - Make
+    - Docker
+    - Docker Compose
 
 ### Creating the headscale control server
 
-Ensure you have created a google cloud project and downloaded a service account key to `headscale/terraform/gcp_key.json`. See [headscale/README.md](./headscale/README.md) for more detail.
+See [headscale/README.md](./headscale/README.md) for more details about what headscale is.
+
+Update `headscale/terraform/terraform.tfvars` with the required values.
 
 ```shell
 make tf-apply
 ```
 
-This will initialise a vm instance and install headscale on it.
+This will initialise a gcp vm instance and install headscale on it.
+
+The terraform should output the external ip of the headscale instance. Set your 
 
 ### Initialise local services
 
+Ensure you have a machine running that you would like to deploy your services to and that you have ssh key access to it.
+
 ```shell
-git clone git@github.com:dkbnz/homelab.git
-cd homelab/services
-./stacks-up
+make ansible-playbook
 ```
 
 ## Hardware
