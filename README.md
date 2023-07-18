@@ -15,7 +15,7 @@ This repository contains various scripts and files for my home server. Used for 
 
 ### Prerequisites (Manual Steps)
 
-- A google cloud project and a service account key downloaded to `headscale/terraform/gcp_key.json`.
+- A google cloud project and a service account key downloaded to `terraform/gcp_key.json`.
 - Domain to use for the headscale control server.
 - Server or VM with a fresh debian install, setup with ssh key access. This will run the services.
 - Machine to orchestrate the installation from with the [3musketeers](https://3musketeers.io/guide/) installed:
@@ -23,11 +23,11 @@ This repository contains various scripts and files for my home server. Used for 
     - Docker
     - Docker Compose
 
-### Creating the headscale control server
+### Setup cloud infrastructure
 
 See [headscale/README.md](./headscale/README.md) for more details about what headscale is.
 
-Update `headscale/terraform/terraform.tfvars` with the required values.
+Update `terraform/terraform.tfvars` with the required values.
 
 ```shell
 make tf-apply
@@ -35,7 +35,7 @@ make tf-apply
 
 This will initialise a gcp vm instance and install headscale on it.
 
-The terraform should output the external ip of the headscale instance. Set your 
+The terraform should output the external ip of the newly created headscale instance.
 
 ### Initialise local services
 

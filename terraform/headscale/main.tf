@@ -1,20 +1,3 @@
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "4.51.0"
-    }
-  }
-}
-
-provider "google" {
-  credentials = file("gcp_key.json")
-
-  project = var.google_project_id
-  region  = "us-central1"
-  zone    = "us-central1-c"
-}
-
 resource "google_compute_firewall" "ssh" {
   name    = "firewall-external-ssh"
   network = "default"
@@ -42,7 +25,7 @@ resource "google_compute_address" "headscale" {
 }
 
 data "template_file" "headscale_config" {
-  template = file("headscale_config.yaml.tpl")
+  template = file("${path.module}/headscale_config.yaml.tpl")
   
   vars = {
     server_url = var.server_url
@@ -50,7 +33,7 @@ data "template_file" "headscale_config" {
 }
 
 data "template_file" "install_headscale" {
-  template = file("install_headscale.sh.tpl")
+  template = file("${path.module}/install_headscale.sh.tpl")
 
   vars = {
     version = var.headscale_version

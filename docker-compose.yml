@@ -3,5 +3,5 @@ services:
   terraform:
     image: hashicorp/terraform:latest
     volumes:
-      - ./headscale/terraform:/work
+      - ./terraform:/work
     working_dir: /work
