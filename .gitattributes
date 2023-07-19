@@ -1,2 +1,3 @@
 terraform.tf*  filter=crypt diff=crypt merge=crypt
 *_key.*  filter=crypt diff=crypt merge=crypt
+*.key  filter=crypt diff=crypt merge=crypt
