@@ -15,3 +15,9 @@ tf-fmt:
 
 tf-validate:
 	docker compose run --rm terraform validate
+
+ansible-apply:
+	docker compose run --rm ansible ansible-playbook
+
+compose-up:
+	docker compose run --rm docker-compose docker-compose up -d
