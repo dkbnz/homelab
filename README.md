@@ -42,7 +42,8 @@ The terraform should output the external ip of the newly created headscale insta
 Ensure you have a machine running that you would like to deploy your services to and that you have ssh key access to it.
 
 ```shell
-make ansible-playbook
+cd ansible
+ANSIBLE_SSH_PIPELINING=1 ansible-playbook playbook.yaml -i inventory.yaml --ask-become-pass
 ```
 
 ## Hardware
@@ -69,3 +70,5 @@ At the moment, The switch is mapped to an OpenVPN client on the router. At the f
 - 1 x USB 2.0 Port
 - 128MB RAM
 - 16MB ROM
+
+https://www.reddit.com/r/Tailscale/comments/104y6nq/docker_tailscale_and_caddy_with_https_a_love_story/
