@@ -7,8 +7,6 @@
       user:
         name: docker
         state: present
-        create_home: true
-        generate_ssh_key: true
 
   roles:
     - name: geerlingguy.docker
@@ -18,5 +16,32 @@
         docker_service_manage: true
         docker_service_state: started
         docker_service_enabled: true
+        docker_install_compose: false
         docker_users:
           - docker
+  
+  tasks:
+    - name: Install docker-compose python module
+      ansible.builtin.pip:
+        name: docker-compose
+
+    - name: Create directory to store services
+      file:
+        path: /opt/services
+        state: directory
+        owner: docker
+
+    - name: Copy docker-compose files
+      copy:
+        src: ../{{ item }}
+        dest: /opt/services/{{ item }}
+        owner: docker
+      loop:
+      - docker-compose-service.yml
+
+    - name: Deploy docker-compose stacks
+      become_user: docker
+      community.docker.docker_compose:
+        project_src: /opt/services
+        files:
+        - docker-compose-service.yml

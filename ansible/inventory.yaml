@@ -1,4 +1,4 @@
 localmachines:
     hosts:
         optiplex:
-            ansible_host: 192.168.1.252
+            ansible_host: 192.168.1.125
