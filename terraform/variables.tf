@@ -1,5 +1,5 @@
 variable "headscale_version" {
-  type = string
+  type    = string
   default = "0.22.3"
 }
 
@@ -12,11 +12,11 @@ variable "server_url" {
 }
 
 variable "backblaze_key" {
-    type = string
-    sensitive = true
+  type      = string
+  sensitive = true
 }
 
 variable "backblaze_key_id" {
-    type = string
-    sensitive = true
+  type      = string
+  sensitive = true
 }

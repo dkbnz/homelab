@@ -61,6 +61,12 @@ resource "google_compute_instance" "headscale" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      metadata["ssh-keys"]
+    ]
+  }
+
   metadata_startup_script = data.template_file.install_headscale.rendered
 }
 

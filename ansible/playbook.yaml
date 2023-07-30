@@ -24,6 +24,45 @@
     - name: Install docker-compose python module
       ansible.builtin.pip:
         name: docker-compose
+        state: present
+
+    - name: Install fuse for rclone docker volume
+      ansible.builtin.apt:
+        name: fuse
+        state: present
+
+    - name: Disable rclone docker volume plugin
+      community.docker.docker_plugin:
+        plugin_name: rclone
+        state: disable
+
+    - name: Install rclone docker volume plugin
+      community.docker.docker_plugin:
+        plugin_name: rclone/docker-volume-rclone:amd64
+        alias: rclone
+        plugin_options:
+          args: "-v"
+        state: present
+
+    - name: Enable rclone docker volume plugin
+      community.docker.docker_plugin:
+        plugin_name: rclone
+        state: enable
+
+    - name: Create directory to store rclone config
+      file:
+        path: /var/lib/docker-plugins/rclone/config
+        state: directory
+
+    - name: Create directory to store rclone cache
+      file:
+        path: /var/lib/docker-plugins/rclone/cache
+        state: directory
+
+    - name: Copy rclone config
+      copy:
+        src: ./rclone.conf
+        dest: /var/lib/docker-plugins/rclone/config/rclone.conf
 
     - name: Create directory to store services
       file:

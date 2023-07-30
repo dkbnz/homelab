@@ -5,15 +5,15 @@ terraform {
       version = "4.51.0"
     }
     b2 = {
-      source = "Backblaze/b2"
+      source  = "Backblaze/b2"
       version = "0.8.4"
     }
   }
 }
 
 provider "b2" {
-    application_key = var.backblaze_key
-    application_key_id = var.backblaze_key_id
+  application_key    = var.backblaze_key
+  application_key_id = var.backblaze_key_id
 }
 
 provider "google" {
@@ -25,8 +25,8 @@ provider "google" {
 }
 
 module "headscale" {
-    source = "./headscale"
-    
-    headscale_version = var.headscale_version
-    server_url = var.server_url
+  source = "./headscale"
+
+  headscale_version = var.headscale_version
+  server_url        = var.server_url
 }
