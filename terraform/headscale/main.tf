@@ -29,6 +29,8 @@ data "template_file" "headscale_config" {
   
   vars = {
     server_url = var.server_url
+    acme_email = var.acme_email
+    base_domain = var.base_domain
   }
 }
 
@@ -39,6 +41,7 @@ data "template_file" "install_headscale" {
     version = var.headscale_version
     config = data.template_file.headscale_config.rendered
   }
+
 }
 
 resource "google_compute_instance" "headscale" {

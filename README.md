@@ -15,7 +15,7 @@ This repository contains various scripts and files for my home server. Used for 
 
 ### Prerequisites (Manual Steps)
 
-- A google cloud project and a service account key downloaded to `terraform/gcp_key.json`.
+- A google cloud project and a service account key downloaded to `terraform/gcp_key.json`. See [set up GCP](#set-up-gcp).
 - Domain to use for the headscale control server.
 - Server or VM with a fresh debian install, setup with ssh key access. This will run the services.
 - Machine to orchestrate the installation from with the [3musketeers](https://3musketeers.io/guide/) installed:
@@ -23,19 +23,52 @@ This repository contains various scripts and files for my home server. Used for 
     - Docker
     - Docker Compose
 
+#### Set up GCP
+
+After creating your GCP account, create or modify the following resources to enable Terraform to provision your infrastructure:
+
+A GCP Project: GCP organizes resources into projects. Create one now in the GCP console and make note of the project ID. You can see a list of your projects in the cloud resource manager.
+
+Google Compute Engine: Enable Google Compute Engine for your project in the GCP console. Make sure to select the project you are using to follow this tutorial and click the "Enable" button.
+
+A GCP service account key: Create a service account key to enable Terraform to access your GCP account. When creating the key, use the following settings:
+    Select the project you created in the previous step.
+    Click "Create Service Account".
+    Give it any name you like and click "Create".
+    For the Role, choose "Project -> Editor", then click "Continue".
+    Skip granting additional users access, and click "Done".
+
+After you create your service account, download your service account key.
+    Select your service account from the list.
+    Select the "Keys" tab.
+    In the drop down menu, select "Create new key".
+    Leave the "Key Type" as JSON.
+    Click "Create" to create the key and save the key file to your system.
+    Copy the contents of the keyfile to `./terraform/gcp_key.json`
+
+You can read more about service account keys in Google's documentation.
+
+
+
+
 ### Setup cloud infrastructure
 
-See [headscale/README.md](./headscale/README.md) for more details about what headscale is.
+See [headscale.net](https://headscale.net/stable/) for more details about what headscale is.
 
 Update `terraform/terraform.tfvars` with the required values.
 
 ```shell
+make tf-init
 make tf-apply
 ```
 
 This will initialise a gcp vm instance and install headscale on it.
 
 The terraform should output the external ip of the newly created headscale instance.
+
+Access your DNS registrar and update the `server_url` to the `headscale_ip_address` outputed from terraform.
+
+You should now have a running headscale server ready to orchestrate vpn connections between your clients.
 
 ### Initialise local services
 
