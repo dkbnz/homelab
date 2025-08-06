@@ -6,7 +6,9 @@ wget --output-document=headscale.deb \
 
 dpkg --install headscale.deb
 
-echo "${config}" > /etc/headscale/config.yaml
+cat << 'EOF' > /etc/headscale/config.yaml
+${config}
+EOF
 
 systemctl enable headscale
 systemctl start headscale

@@ -29,4 +29,6 @@ module "headscale" {
     
     headscale_version = var.headscale_version
     server_url = var.server_url
+    acme_email = var.acme_email
+    base_domain = var.base_domain
 }
