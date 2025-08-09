@@ -1,6 +1,9 @@
 tf-init:
 	docker compose run --rm terraform init
 
+tf-init-upgrade:
+	docker compose run --rm terraform init -upgrade
+
 tf-plan:
 	docker compose run --rm terraform plan
 

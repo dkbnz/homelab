@@ -2,18 +2,13 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "4.51.0"
+      version = "6.47.0"
     }
     b2 = {
       source  = "Backblaze/b2"
-      version = "0.8.4"
+      version = "0.10.0"
     }
   }
-}
-
-provider "b2" {
-  application_key    = var.backblaze_key
-  application_key_id = var.backblaze_key_id
 }
 
 provider "google" {
@@ -31,4 +26,20 @@ module "headscale" {
   server_url        = var.server_url
   acme_email        = var.acme_email
   base_domain       = var.base_domain
+}
+
+provider "b2" {
+  application_key    = var.backblaze_key
+  application_key_id = var.backblaze_key_id
+}
+
+resource "b2_bucket" "homelab_backup" {
+  bucket_name = "homelab-data-backup"
+  bucket_type = "allPrivate"
+}
+
+resource "b2_application_key" "homelab_backup_key" {
+  key_name     = "homelab-backup-key"
+  capabilities = ["listFiles", "readFiles", "writeFiles", "deleteFiles"]
+  bucket_id    = b2_bucket.homelab_backup.bucket_id
 }
