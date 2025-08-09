@@ -4,3 +4,9 @@ services:
     volumes:
       - ./terraform:/work
     working_dir: /work
+
+  ansible:
+    image: alpine/ansible:latest
+    volumes:
+      - ./ansible:/work
+    working_dir: /work

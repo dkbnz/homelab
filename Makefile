@@ -18,3 +18,6 @@ tf-fmt:
 
 tf-validate:
 	docker compose run --rm terraform validate
+
+ansible-up:
+	docker compose run --rm ansible ansible-playbook playbook.yaml -i inventory.yaml --ask-become-pass
