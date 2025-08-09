@@ -53,7 +53,7 @@ resource "google_compute_instance" "headscale" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-11"
+      image = "debian-cloud/debian-12"
     }
   }
 
@@ -65,6 +65,44 @@ resource "google_compute_instance" "headscale" {
   }
 
   metadata_startup_script = data.template_file.install_headscale.rendered
+}
+
+resource "google_os_config_patch_deployment" "headscale_patch" {
+  patch_deployment_id = "headscale-auto-patch"
+  project             = google_compute_instance.headscale.project
+
+  instance_filter {
+    instances = [google_compute_instance.headscale.self_link]
+  }
+
+  patch_config {
+    reboot_config = "NEVER"
+    apt {
+      type = "DIST"
+    }
+  }
+
+  recurring_schedule {
+    time_zone {
+      id = "UTC"
+    }
+    time_of_day {
+      hours   = 0
+      minutes = 0
+    }
+    weekly {
+      day_of_week = "SUNDAY"
+    }
+  }
+
+  rollout {
+    mode = "ZONE_BY_ZONE"
+    disruption_budget {
+      fixed = 1
+    }
+  }
+
+  duration = "3600s"
 }
 
 output "headscale_ip_address" {
