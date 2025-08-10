@@ -2,3 +2,6 @@
 cleanup.sh
 secret
 .terraform
+media
+config
+downloads
