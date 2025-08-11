@@ -1,7 +1,5 @@
-.env
 cleanup.sh
 secret
 .terraform
-media
+data
 config
-downloads
