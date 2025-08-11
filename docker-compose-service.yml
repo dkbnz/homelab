@@ -5,11 +5,33 @@ services:
     cap_add:
       - NET_ADMIN
     devices:
-      - /dev/net/tun:/dev/net/tun
+      - /dev/net/tun
     ports:
       - "8096:8096" # Jellyfin
+      - "5055:5055" # Jellyseerr
+      - "9696:9696" # Prowlarr
+      - "8989:8989" # Sonarr
+      - "7878:7878" # Radarr
+      - "6789:6789" # NZBGet
     env_file:
       - ./vpn.env
+
+  # headscale:
+  #   image: tailscale/tailscale:stable
+  #   hostname: arrnet
+  #   depends_on:
+  #     - gluetun
+  #   network_mode: service:gluetun   # Share network with Gluetun
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun
+  #   volumes:
+  #     - ./config/tailscale:/var/lib/tailscale
+  #   environment:
+  #     - TS_AUTHKEY=tskey-auth-xxxxxxxx
+  #     - TS_LOGIN_SERVER=https://headscale.example.com
+  #   command: tailscaled
 
   nzbget:
     image: ghcr.io/hotio/nzbget
@@ -111,5 +133,7 @@ services:
   curl:
     image: curlimages/curl
     network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
     entrypoint: ["curl"]
     command: ["icanhazip.com"]
