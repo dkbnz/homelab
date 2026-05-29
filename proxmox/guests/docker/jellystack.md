@@ -82,12 +82,26 @@ with the phone's library. Then imported:
 One metadata fix: the "Mean Girls (2024)" folder first matched TMDB's 2004 film
 (lookup takes the first result); corrected to the 2024 entry.
 
+## Prowlarr indexers (mostly resolved)
+
+Most of the "unavailable" indexers were stale failures - they passed on retest.
+The FlareSolverr indexer proxy (already configured at `http://flaresolverr:8191/`,
+tag `cloudflare` id 1) wasn't being applied because the CloudFlare indexers had no
+tags. Tagged `0Magnet` and `kickasstorrents.ws` with `cloudflare`; **12/14 indexers
+now valid**. 0Magnet now passes through FlareSolverr.
+
+Two still fail and are not worth chasing:
+- `kickass.ws` - still CloudFlare-blocked through FlareSolverr (Turnstile/captcha it
+  can't solve; a dead KAT mirror). Disable or remove it.
+- `Internet Archive` - intermittent HTTP timeout, not a block.
+
+A full VPN reroute of Prowlarr through gluetun was considered and skipped: the other
+indexers resolve directly, and neither remaining failure is an IP-block, so it would
+add risk (compose change, gluetun firewall ports, breaks the `prowlarr` hostname for
+inter-container calls) with no benefit.
+
 ## Still open
 
-- Several public Prowlarr indexers (1337x, The Pirate Bay, NZBgeek, Nyaa.si,
-  Internet Archive) report unavailable. Prowlarr reaches indexers directly, not
-  through the VPN, so these are likely ISP-blocked. Option: route Prowlarr through
-  gluetun, or use FlareSolverr consistently.
-- The T7's `media-server/downloads` (~83GB of redundant raw grabs) and the old
-  `media-server/config` remain - safe to delete to reclaim space.
+- The T7's `media-server/downloads` (~83GB) was deleted; the small old
+  `media-server/config` (defunct arr databases) remains and can be removed.
 - Convert the T7 to ext4 once a spare >=200GB disk is available to stage its data.
