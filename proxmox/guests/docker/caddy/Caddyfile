@@ -1,9 +1,28 @@
 {
     auto_https off
 }
+
 http://jellyfin.home {
     reverse_proxy jellyfin:8096
 }
 http://jellyseerr.home {
     reverse_proxy jellyseerr:5055
+}
+http://sonarr.home {
+    reverse_proxy sonarr:8989
+}
+http://radarr.home {
+    reverse_proxy radarr:7878
+}
+http://prowlarr.home {
+    reverse_proxy prowlarr:9696
+}
+http://sabnzbd.home {
+    reverse_proxy sabnzbd:8080
+}
+http://qbittorrent.home {
+    reverse_proxy gluetun:8080
+}
+http://flaresolverr.home {
+    reverse_proxy flaresolverr:8191
 }
