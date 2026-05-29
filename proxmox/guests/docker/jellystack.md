@@ -42,18 +42,31 @@ SABnzbd `:8081`, qBittorrent `:8080` (via gluetun), FlareSolverr `:8191`.
 
 ## Local access (Caddy + AdGuard)
 
-The `caddy` service publishes `:80` on the docker host and routes by hostname to the
-two sidecar-fronted apps (it reaches them via the `jellyfin` / `jellyseerr` network
-aliases). The `caddy/Caddyfile` maps:
+The `caddy` service publishes `:80` on the docker host and routes every app by
+hostname. The `caddy/Caddyfile` maps:
 
-- `http://jellyfin.home`  -> `jellyfin:8096`
-- `http://jellyseerr.home` -> `jellyseerr:5055`
+| URL | Upstream |
+|-----|----------|
+| `http://jellyfin.home`     | `jellyfin:8096` |
+| `http://jellyseerr.home`   | `jellyseerr:5055` |
+| `http://sonarr.home`       | `sonarr:8989` |
+| `http://radarr.home`       | `radarr:7878` |
+| `http://prowlarr.home`     | `prowlarr:9696` |
+| `http://sabnzbd.home`      | `sabnzbd:8080` |
+| `http://qbittorrent.home`  | `gluetun:8080` (qBittorrent shares gluetun's netns) |
+| `http://flaresolverr.home` | `flaresolverr:8191` |
 
-Name resolution is via **AdGuard Home DNS rewrites** (`jellyfin.home` /
-`jellyseerr.home` -> `192.168.1.30`, see `proxmox/guests/adguard/AdGuardHome.yaml`).
-This only works for clients that use AdGuard (`192.168.1.20`) as their resolver.
-`.home` is used rather than `.local` because `.local` is reserved for mDNS and is not
-resolvable via unicast DNS on Apple devices.
+Name resolution is via an **AdGuard Home wildcard DNS rewrite** (`*.home` ->
+`192.168.1.30`, see `proxmox/guests/adguard/AdGuardHome.yaml`), so any new `.home`
+name routes to Caddy automatically. This only works for clients that use AdGuard
+(`192.168.1.20`) as their resolver. `.home` is used rather than `.local` because
+`.local` is mDNS-only and not resolvable via unicast DNS on Apple devices.
+
+Host-header validation notes: SABnzbd rejects unknown `Host` headers, so
+`sabnzbd.home` is added to its `host_whitelist` (in `appdata/sabnzbd/sabnzbd.ini`).
+qBittorrent accepted the proxied host as-is. Only Jellyfin and Jellyseerr are exposed
+over Tailscale (they're the only services with a `ts-*` sidecar); everything else is
+LAN-only via Caddy.
 
 ## Tailscale
 
