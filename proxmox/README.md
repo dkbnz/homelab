@@ -36,6 +36,31 @@ alongside (`guests/adguard/`, `guests/docker/`).
 > bound `192.168.1.100` — an address the LXC doesn't have — so it crash-looped for
 > ~8 days until this was fixed. Point client DNS at `192.168.1.20` to use it.
 
+## Updates & automatic updates
+
+| Component | Mechanism | Auto? |
+|-----------|-----------|-------|
+| Debian + Proxmox packages (host) | `unattended-upgrades` (Debian + Proxmox no-subscription origins) | yes, daily |
+| Debian packages (CT 101, CT 102) | `unattended-upgrades` | yes, daily |
+| Kernel/glibc reboot (host) | `config/apt/52unattended-reboot.conf` → reboots 04:30 when needed | yes |
+| Docker images (CT 102) | watchtower, daily 04:00 (`guests/docker/watchtower.compose.yml`) | yes |
+| Home Assistant (VM 100) | Supervisor self-updates; addon auto-update is per-addon in the HA UI; core/OS are manual (breaking-change risk) | partial |
+
+Apply everything on demand:
+
+```shell
+# host + both LXCs
+ssh homelab 'export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a; \
+  for c in 101 102; do pct exec $c -- apt-get update -qq && pct exec $c -- apt-get -y full-upgrade; done; \
+  apt-get update -qq && apt-get -y full-upgrade'
+# container images now (instead of waiting for 04:00)
+ssh homelab 'pct exec 102 -- docker compose -f /opt/watchtower/watchtower.compose.yml run --rm watchtower --run-once'
+```
+
+A host kernel/glibc update sets `/run/reboot-required`; the 04:30 auto-reboot then
+activates it (~2 min downtime, all guests have `onboot: 1`). Reboot sooner with
+`ssh homelab reboot` during a maintenance window.
+
 ## Reconcile live state into the repo
 
 `scripts/snapshot.sh` pulls the live guest configs and the AdGuard config off the
