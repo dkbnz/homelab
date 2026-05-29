@@ -66,12 +66,28 @@ on the live stack (all in SABnzbd / the *arr download-client settings, stored in
 - SABnzbd `complete_dir`/`download_dir` repointed to the shared `/downloads` mount
   (they were relative paths resolving inside SABnzbd's own `/config`).
 
+## T7 media-server library folded in (done)
+
+The T7's older `media-server/library` (17 movies + Lucky Hank) was moved into the
+stack's tree (`mv` within the same exfat filesystem - instant, no copy): movies into
+`jellystack-media/movies`, `shows` into `jellystack-media/tv`. No name collisions
+with the phone's library. Then imported:
+
+- Radarr: 17 movies added via API (Import Existing); 27/29 movies now have files
+  (the 2 without are pre-existing wanted entries from the phone).
+- Sonarr: Lucky Hank added (8/8 episodes); The Rookie still 16/18.
+- Jellyfin: rescanned - 27 movies, 2 series, 24 episodes.
+- Jellyseerr: full + Radarr/Sonarr scans run - 27 available items synced.
+
+One metadata fix: the "Mean Girls (2024)" folder first matched TMDB's 2004 film
+(lookup takes the first result); corrected to the 2024 entry.
+
 ## Still open
 
 - Several public Prowlarr indexers (1337x, The Pirate Bay, NZBgeek, Nyaa.si,
   Internet Archive) report unavailable. Prowlarr reaches indexers directly, not
   through the VPN, so these are likely ISP-blocked. Option: route Prowlarr through
   gluetun, or use FlareSolverr consistently.
-- The T7's separate older `media-server/` library (~170GB) is still present and
-  unused by this stack; fold it in or leave it.
+- The T7's `media-server/downloads` (~83GB of redundant raw grabs) and the old
+  `media-server/config` remain - safe to delete to reclaim space.
 - Convert the T7 to ext4 once a spare >=200GB disk is available to stage its data.
