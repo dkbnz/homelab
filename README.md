@@ -4,6 +4,22 @@
 
 This repository contains various scripts and files for my home server. Used for debian based distributions.
 
+## Topology
+
+The lab runs [Proxmox VE](https://www.proxmox.com/) on a single mini PC, hosting one
+VM and two LXC containers:
+
+| ID  | Type | Name     | Address        | Purpose                            |
+|-----|------|----------|----------------|------------------------------------|
+| 100 | VM   | haos12.4 | DHCP           | Home Assistant OS                  |
+| 101 | LXC  | adguard  | `192.168.1.20` | AdGuard Home DNS / ad blocking     |
+| 102 | LXC  | docker   | `192.168.1.30` | Docker host (watchtower + stacks)  |
+
+The host, guest configs, and rebuild steps are documented in [`proxmox/`](proxmox/).
+Service stacks that can be deployed onto the Docker LXC live in [`services/`](services/)
+and [`docker-compose-service.yml`](docker-compose-service.yml). The GCP headscale
+control server is managed separately under [`terraform/`](terraform/).
+
 ## Design Decisions
 
 - Infrastructure-as-code is used where possible, eliminating manual processes and allowing for an iterative approach to infrastructure management.
@@ -70,9 +86,23 @@ Access your DNS registrar and update the `server_url` to the `headscale_ip_addre
 
 You should now have a running headscale server ready to orchestrate vpn connections between your clients.
 
-### Initialise local services
+### Set up the Proxmox guests
 
-Ensure you have a machine running that you would like to deploy your services to and that you have ssh key access to it.
+The host and its guests (Home Assistant VM, AdGuard and Docker LXCs) are documented
+in [`proxmox/`](proxmox/), including how each was built and how to rebuild it. Pull
+the live state back into the repo at any time with:
+
+```shell
+proxmox/scripts/snapshot.sh
+```
+
+### Deploy service stacks onto the Docker LXC
+
+The Docker LXC (CT 102) runs containers managed by docker compose. The Ansible
+playbook below installs Docker and deploys `docker-compose-service.yml` to a target
+host. It predates the Proxmox setup (where the helper script already provides Docker),
+so it is optional - point `ansible/inventory.yaml` at the Docker LXC (`192.168.1.30`)
+if you want to use it.
 
 ```shell
 cd ansible
@@ -84,13 +114,14 @@ ANSIBLE_SSH_PIPELINING=1 ansible-playbook playbook.yaml -i inventory.yaml --ask-
 ![Front image of homelab](img/front.jpg)
 ![Back image of homelab](img/back.jpg)
 
-### HP Elitedesk 800 G1 Mini
+### Mini PC (Proxmox host)
 
-Running Debian 11 Bullseye. Used as a docker host for experimentation with containerization. Fits in the palm of my hand and sips power.
+Intel Core i7-8650U mini PC running Proxmox VE 8. Fits in the palm of my hand and sips power.
 
-- 8gb RAM
-- i5-4570
-- 1 x 128gb SSD
+- 16gb RAM
+- i7-8650U (8 threads)
+- 64gb SanDisk SSD (boot, `local-lvm`)
+- 931gb Samsung T7 (data, passed through to the Docker LXC)
 
 ### GL.iNET GL-MT300N-V2 Travel Router
 
