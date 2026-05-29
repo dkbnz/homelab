@@ -1,0 +1,223 @@
+services:
+  # =========================================================
+  # Tailscale sidecars — fronting Jellyfin + Jellyseerr only.
+  # Each sidecar takes the netns; the app container shares it.
+  # No host port mapping for the apps. Only reachable via TS.
+  # =========================================================
+  ts-jellyfin:
+    image: tailscale/tailscale:latest
+    container_name: ts-jellyfin
+    hostname: jellyfin
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=jellyfin
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_EXTRA_ARGS=--accept-dns=false
+    volumes:
+      - ./appdata/ts-jellyfin/state:/var/lib/tailscale
+      - ./appdata/ts-jellyfin/serve.json:/config/serve.json:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    networks:
+      default:
+        aliases:
+          - jellyfin
+    restart: unless-stopped
+
+  ts-jellyseerr:
+    image: tailscale/tailscale:latest
+    container_name: ts-jellyseerr
+    hostname: jellyseerr
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=jellyseerr
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_EXTRA_ARGS=--accept-dns=false
+    volumes:
+      - ./appdata/ts-jellyseerr/state:/var/lib/tailscale
+      - ./appdata/ts-jellyseerr/serve.json:/config/serve.json:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    networks:
+      default:
+        aliases:
+          - jellyseerr
+    restart: unless-stopped
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    network_mode: "service:ts-jellyfin"
+    depends_on:
+      - ts-jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/jellyfin:/config
+      - ./media/tv:/data/tvshows
+      - ./media/movies:/data/movies
+      - ./media/music:/data/music
+    restart: unless-stopped
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    network_mode: "service:ts-jellyseerr"
+    depends_on:
+      - ts-jellyseerr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/jellyseerr:/app/config
+    restart: unless-stopped
+
+  # =========================================================
+  # *arr suite + Prowlarr — LAN-only on phone (172.16.42.1)
+  # =========================================================
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/sonarr:/config
+      - ./media/tv:/tv
+      - ./media/downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/radarr:/config
+      - ./media/movies:/movies
+      - ./media/downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/prowlarr:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/sabnzbd:/config
+      - ./media/downloads:/downloads
+    ports:
+      - 8081:8080
+    restart: unless-stopped
+
+  # =========================================================
+  # VPN + qBittorrent — qBit pinned to gluetun netns
+  # qBit WebUI on phone LAN at http://172.16.42.1:8080
+  # =========================================================
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - SERVER_COUNTRIES=${SURFSHARK_COUNTRY}
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/gluetun:/gluetun
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+    volumes:
+      - ./appdata/qbittorrent:/config
+      - ./media/downloads:/downloads
+    restart: unless-stopped
+
+  # =========================================================
+  # FlareSolverr — Cloudflare bypass for Prowlarr indexers
+  # =========================================================
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    ports:
+      - 8191:8191
+    restart: unless-stopped
+
+  # =========================================================
+  # Unpackerr — auto-extract obfuscated/RAR releases for arrs
+  # =========================================================
+  unpackerr:
+    image: golift/unpackerr:latest
+    container_name: unpackerr
+    user: ${PUID}:${PGID}
+    environment:
+      - TZ=${TZ}
+      - UN_SONARR_0_URL=http://sonarr:8989
+      - UN_SONARR_0_API_KEY=${SONARR_API_KEY}
+      - UN_SONARR_0_PATHS_0=/downloads/tv
+      - UN_RADARR_0_URL=http://radarr:7878
+      - UN_RADARR_0_API_KEY=${RADARR_API_KEY}
+      - UN_RADARR_0_PATHS_0=/downloads/movies
+    volumes:
+      - ./appdata/unpackerr:/config
+      - ./media/downloads:/downloads
+    restart: unless-stopped
