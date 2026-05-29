@@ -1,0 +1,62 @@
+# Home Assistant automations (VM 100) - overnight internet plug control.
+# Appended to HA's /config/automations.yaml (alongside the existing presence
+# automations). Controls both Zigbee Tuya plugs that power the Starlink internet.
+#
+# Deploy: append these two entries to /mnt/data/supervisor/homeassistant/automations.yaml
+#         on the HAOS host, then `ha core check` and `ha core restart`.
+#
+# Behaviour:
+#   - After 00:00, once Starlink down + up throughput both stay < 0.5 Mbit/s for
+#     15 continuous minutes, cut both plugs (waits out any active downloads).
+#   - At 07:00, turn both plugs back on (HA controls them locally over Zigbee, so
+#     cutting internet does not affect the restore).
+#
+# Interaction with the existing presence automations (presence_plug_off /
+# presence_plug_on, same two plugs):
+#   - Presence triggers on phone arrive/leave events, which don't fire overnight,
+#     so the idle-off generally sticks until 07:00.
+#   - If everyone is away, presence already holds the plugs off; the 07:00 turn-on
+#     is unconditional and will switch internet back on even while away (until the
+#     next departure event re-triggers presence-off). Make 07:00 conditional on
+#     presence if that's unwanted.
+#
+# Tunables: the 0.5 Mbit/s threshold and 15-minute window. Brief throughput spikes
+# above 0.5 reset the 15-minute timer; raise the threshold or window if it rarely
+# triggers on a chatty connection.
+
+- id: internet_idle_off_after_midnight
+  alias: Internet off when Starlink idle after midnight
+  description: After 00:00, if Starlink down+up throughput stays under 0.5 Mbit/s for 15 min, cut both internet plugs.
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.starlink_downlink_throughput
+      below: 0.5
+      for: "00:15:00"
+  condition:
+    - condition: time
+      after: "00:00:00"
+      before: "07:00:00"
+    - condition: numeric_state
+      entity_id: sensor.starlink_uplink_throughput
+      below: 0.5
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id:
+          - switch.0xa4c138ef31102dc3
+          - switch.0xa4c1380d7c843043
+  mode: single
+
+- id: internet_on_at_7am
+  alias: Internet back on at 7am
+  description: Restore both internet plugs at 07:00.
+  trigger:
+    - platform: time
+      at: "07:00:00"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id:
+          - switch.0xa4c138ef31102dc3
+          - switch.0xa4c1380d7c843043
+  mode: single
