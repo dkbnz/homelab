@@ -31,9 +31,10 @@ All three were created with the [community Proxmox helper scripts](https://commu
 Guest configs are snapshotted in `guests/` (`*.conf`), application config sits
 alongside (`guests/adguard/`, `guests/docker/`).
 
-> Note: AdGuard Home binds to `192.168.1.100` in its own config while the LXC's
-> primary interface is `192.168.1.20`. Confirm the intended listen address when
-> rebuilding.
+> Note: AdGuard Home now binds `0.0.0.0` (serves DNS on the LXC's IP `192.168.1.20`)
+> and provides DNS rewrites for `jellyfin.home` / `jellyseerr.home`. It previously
+> bound `192.168.1.100` — an address the LXC doesn't have — so it crash-looped for
+> ~8 days until this was fixed. Point client DNS at `192.168.1.20` to use it.
 
 ## Reconcile live state into the repo
 

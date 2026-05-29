@@ -34,10 +34,26 @@ so the containers can write to it.
 ssh homelab 'pct exec 102 -- docker compose -f /opt/jellystack/compose.yaml up -d'
 ```
 
-Jellyfin and Jellyseerr have no host ports — reach them only over Tailscale
-(`https://jellyfin.<tailnet>`, `https://jellyseerr.<tailnet>`). The rest are on the
-LAN at `192.168.1.30`: Sonarr `:8989`, Radarr `:7878`, Prowlarr `:9696`,
+Jellyfin and Jellyseerr have no host ports — they share their Tailscale sidecar's
+network namespace. Reach them over Tailscale (`https://jellyfin.<tailnet>`,
+`https://jellyseerr.<tailnet>`) or on the LAN via the Caddy proxy (below). The rest
+are on the LAN at `192.168.1.30`: Sonarr `:8989`, Radarr `:7878`, Prowlarr `:9696`,
 SABnzbd `:8081`, qBittorrent `:8080` (via gluetun), FlareSolverr `:8191`.
+
+## Local access (Caddy + AdGuard)
+
+The `caddy` service publishes `:80` on the docker host and routes by hostname to the
+two sidecar-fronted apps (it reaches them via the `jellyfin` / `jellyseerr` network
+aliases). The `caddy/Caddyfile` maps:
+
+- `http://jellyfin.home`  -> `jellyfin:8096`
+- `http://jellyseerr.home` -> `jellyseerr:5055`
+
+Name resolution is via **AdGuard Home DNS rewrites** (`jellyfin.home` /
+`jellyseerr.home` -> `192.168.1.30`, see `proxmox/guests/adguard/AdGuardHome.yaml`).
+This only works for clients that use AdGuard (`192.168.1.20`) as their resolver.
+`.home` is used rather than `.local` because `.local` is reserved for mDNS and is not
+resolvable via unicast DNS on Apple devices.
 
 ## Tailscale
 

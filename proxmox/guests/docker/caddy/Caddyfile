@@ -1,0 +1,9 @@
+{
+    auto_https off
+}
+http://jellyfin.home {
+    reverse_proxy jellyfin:8096
+}
+http://jellyseerr.home {
+    reverse_proxy jellyseerr:5055
+}

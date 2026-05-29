@@ -221,3 +221,20 @@ services:
       - ./appdata/unpackerr:/config
       - ./media/downloads:/downloads
     restart: unless-stopped
+
+  # Reverse proxy for clean local URLs (http://jellyfin.home, http://jellyseerr.home).
+  # Reaches the apps via the ts-* sidecar network aliases. Names resolve via AdGuard
+  # DNS rewrites (jellyfin.home / jellyseerr.home -> 192.168.1.30).
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    depends_on:
+      - ts-jellyfin
+      - ts-jellyseerr
