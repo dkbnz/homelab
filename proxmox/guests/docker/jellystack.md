@@ -45,11 +45,33 @@ This stack uses **Tailscale SaaS** (tailnet `shetland-gamma.ts.net`), not the re
 headscale server. The sidecar state was copied with the rest of `appdata`, so the
 `jellyfin` and `jellyseerr` nodes rejoined with their existing identities, no re-auth.
 
-## Media reconciliation (pending)
+## Media + library reconciliation (done)
 
-Migrated with config only; media was left behind. The T7 already holds a separate
-older `media-server/` library (~170GB) with its own *arr databases. The *arr apps
-here catalog the phone's library, so their items show as "missing" until the media is
-reconciled. Follow-ups: copy the phone's library and/or repoint the *arr root folders
-at the T7's existing `media-server/library`, and convert the T7 to ext4 once a spare
-disk is available to stage its 183GB.
+The phone's library (~63GB) was copied over the LAN into `/mnt/t7/jellystack-media/`
+(`tv`, `movies`, `downloads`), matching the paths the migrated *arr configs expect
+(`/tv`, `/movies`, `/downloads`). After rescans, the libraries line up across the
+stack: Radarr 10/12 movies, Sonarr 16/18 episodes (the gaps are in-progress
+downloads), and Jellyfin reports the same (10 movies, 1 series, 16 episodes).
+
+Download-pipeline config that did not survive the Podman->Docker move and was fixed
+on the live stack (all in SABnzbd / the *arr download-client settings, stored in
+`appdata`, not tracked here):
+
+- SABnzbd `host_whitelist` now includes `sabnzbd` (the container name the *arr apps
+  use) - it was rejecting requests with 403.
+- Sonarr/Radarr SABnzbd **API key** updated to SABnzbd's actual key (the migrated key
+  was stale).
+- Sonarr/Radarr SABnzbd **categories** set to `tv` / `movies` (the configured
+  `tv-sonarr` / `movies-radarr` don't exist in this SABnzbd).
+- SABnzbd `complete_dir`/`download_dir` repointed to the shared `/downloads` mount
+  (they were relative paths resolving inside SABnzbd's own `/config`).
+
+## Still open
+
+- Several public Prowlarr indexers (1337x, The Pirate Bay, NZBgeek, Nyaa.si,
+  Internet Archive) report unavailable. Prowlarr reaches indexers directly, not
+  through the VPN, so these are likely ISP-blocked. Option: route Prowlarr through
+  gluetun, or use FlareSolverr consistently.
+- The T7's separate older `media-server/` library (~170GB) is still present and
+  unused by this stack; fold it in or leave it.
+- Convert the T7 to ext4 once a spare >=200GB disk is available to stage its data.
