@@ -1,11 +1,14 @@
 # Watchtower - automatic container image updates on the Docker LXC (CT 102).
-# Reconstructed from the running container (originally started with `docker run`).
 # Updates daily at 04:00 Pacific/Auckland and removes old images.
+#
+# Uses the maintained fork (nicholas-fedor) - the original containrrr/watchtower
+# is abandoned and its Docker API client (v1.25) is rejected by modern dockerd
+# (min API 1.40), which crash-loops it.
 #
 # Deploy:  docker compose -f watchtower.compose.yml up -d
 services:
   watchtower:
-    image: containrrr/watchtower
+    image: ghcr.io/nicholas-fedor/watchtower:latest
     container_name: watchtower
     restart: unless-stopped
     volumes:
