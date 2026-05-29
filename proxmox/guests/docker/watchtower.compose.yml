@@ -1,0 +1,17 @@
+# Watchtower - automatic container image updates on the Docker LXC (CT 102).
+# Reconstructed from the running container (originally started with `docker run`).
+# Updates daily at 04:00 Pacific/Auckland and removes old images.
+#
+# Deploy:  docker compose -f watchtower.compose.yml up -d
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=Pacific/Auckland
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *
+      - WATCHTOWER_INCLUDE_RESTARTING=true

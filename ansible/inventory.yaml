@@ -1,4 +1,5 @@
 localmachines:
     hosts:
-        optiplex:
-            ansible_host: 192.168.1.125
+        docker:
+            # Docker LXC on the Proxmox host (CT 102)
+            ansible_host: 192.168.1.30
