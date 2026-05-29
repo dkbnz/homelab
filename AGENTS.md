@@ -48,6 +48,9 @@ proxmox/                 Current Proxmox state (source of truth)
     102-docker.conf      pct config snapshot
     adguard/AdGuardHome.yaml   AdGuard config (ENCRYPTED via transcrypt)
     docker/watchtower.compose.yml
+    docker/jellystack.compose.yml   migrated *arr/media stack (deployed on CT 102)
+    docker/jellystack.env           jellystack secrets (ENCRYPTED via transcrypt)
+    docker/jellystack.md            jellystack deploy + storage + tailscale notes
   scripts/snapshot.sh    Pull live guest/app config back into the repo
 terraform/               GCP headscale control server (separate concern; state encrypted)
   headscale/             Headscale module + cloud-init templates
@@ -55,15 +58,17 @@ ansible/                 Optional: install Docker + deploy stacks onto a host
 services/                Deployable docker compose stacks (not all currently running)
   stacks/                base (traefik), autopirate, nextcloud, freshrss, bitwarden, jupyter, backup
   env/                   Per-service env files (ENCRYPTED via transcrypt)
-docker-compose-service.yml   The *arr media stack behind gluetun VPN (deploy target: CT 102)
+docker-compose-service.yml   SUPERSEDED hotio *arr stack (never deployed; see jellystack)
 docker-compose.yml       3musketeers tooling (terraform + ansible containers)
 Makefile                 tf-* and ansible-up targets (run tools via docker compose)
 ```
 
-What is actually running right now: HAOS VM, AdGuard, and only `watchtower` in the
-Docker LXC. The `services/` stacks and `docker-compose-service.yml` are defined but
-**not deployed**. Treat them as available-to-deploy, not live, unless you verify
-otherwise with `pct exec 102 -- docker ps`.
+What is actually running right now: HAOS VM, AdGuard, and on the Docker LXC the
+**jellystack** media stack (12 containers) plus `watchtower`. The `services/` stacks
+are defined but **not deployed**. The root `docker-compose-service.yml` is a superseded
+earlier *arr stack, kept for reference only — jellystack
+(`proxmox/guests/docker/jellystack.md`) is the real one. Verify with
+`pct exec 102 -- docker ps`.
 
 ## Secrets (transcrypt)
 
