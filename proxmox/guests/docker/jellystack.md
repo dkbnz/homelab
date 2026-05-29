@@ -90,10 +90,11 @@ tag `cloudflare` id 1) wasn't being applied because the CloudFlare indexers had 
 tags. Tagged `0Magnet` and `kickasstorrents.ws` with `cloudflare`; **12/14 indexers
 now valid**. 0Magnet now passes through FlareSolverr.
 
-Two still fail and are not worth chasing:
-- `kickass.ws` - still CloudFlare-blocked through FlareSolverr (Turnstile/captcha it
-  can't solve; a dead KAT mirror). Disable or remove it.
-- `Internet Archive` - intermittent HTTP timeout, not a block.
+`kickasstorrents.ws` was **disabled** - FlareSolverr can't solve its CloudFlare
+challenge (Turnstile; a dead KAT mirror). `Internet Archive` stays enabled but
+intermittently times out (a slow but legitimate site, not a block). Sonarr may
+briefly still warn about `1337x`/`Internet Archive`; those are cached failure records
+that age out of its 6-hour window once queries succeed - Prowlarr tests 1337x valid.
 
 A full VPN reroute of Prowlarr through gluetun was considered and skipped: the other
 indexers resolve directly, and neither remaining failure is an IP-block, so it would
@@ -102,6 +103,7 @@ inter-container calls) with no benefit.
 
 ## Still open
 
-- The T7's `media-server/downloads` (~83GB) was deleted; the small old
-  `media-server/config` (defunct arr databases) remains and can be removed.
+- The entire T7 `media-server/` directory was removed (its library was folded in,
+  the ~83GB downloads and defunct config deleted). The T7 now holds only
+  `jellystack-media/` plus unrelated PS4 game data.
 - Convert the T7 to ext4 once a spare >=200GB disk is available to stage its data.
