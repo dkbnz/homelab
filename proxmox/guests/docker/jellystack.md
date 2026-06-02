@@ -145,9 +145,10 @@ atomic import moves). exFAT has no shrink tool, so the convert needed a full eva
 4. `rsync` everything back. Files keep `110000:110000` ownership (= container 10000).
 
 The `/mnt/sdc/t7-staging` copy served as the backup during the convert and was wiped
-afterwards (sdc is now an empty spare) - so there is no off-T7 backup of the media at
-present. mp1 (jellystack-media) and mp3 (minecraft) are path-based binds, so they
-survived the reformat unchanged.
+afterwards. sdc now holds the daily `sdc-backup.sh` backup of appdata + the minecraft
+world + PS4 data; the raw video media is deliberately not backed up (redownloadable).
+mp1 (jellystack-media) and mp3 (minecraft) are path-based binds, so they survived the
+reformat unchanged.
 
 ## Second fold: old 2023 sdc library (done)
 
