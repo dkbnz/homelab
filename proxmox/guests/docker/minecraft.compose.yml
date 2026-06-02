@@ -1,0 +1,70 @@
+# Minecraft (Paper) server on CT 102, joined to the Tailscale tailnet via a sidecar.
+#
+# The ts-minecraft sidecar gets a tailnet identity (hostname "minecraft" ->
+# minecraft.shetland-gamma.ts.net). The MC container shares that netns, so it is
+# reachable at <tailnet-ip>:25565 with no router port-forward. The public GCP relay
+# (34.57.192.233) forwards :25565 into the tailnet. See minecraft.md.
+#
+# World data on the T7 (exFAT, host uid 110000 -> container uid 10000); server runs
+# as UID/GID 10000. Tailscale state is kept on a named volume (ext4, /var/lib/docker)
+# because exFAT can't back tailscaled's state.
+#
+# TS_AUTHKEY comes from minecraft.env (encrypted via transcrypt) — never in plaintext.
+services:
+  ts-minecraft:
+    image: tailscale/tailscale:latest
+    container_name: ts-minecraft
+    hostname: minecraft
+    restart: unless-stopped
+    ports:
+      - "25565:25565"          # LAN access at 192.168.1.30:25565 (sidecar owns the netns)
+      - "127.0.0.1:25575:25575" # rcon, LXC loopback only (Discord bot reaches it; never public)
+    env_file:
+      - minecraft.env          # TS_AUTHKEY=tskey-...  (encrypted)
+    environment:
+      TS_HOSTNAME: "minecraft"
+      TS_STATE_DIR: "/var/lib/tailscale"
+      TS_USERSPACE: "false"
+      TS_EXTRA_ARGS: "--accept-dns=false"
+    volumes:
+      - mc-tsstate:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  minecraft:
+    image: itzg/minecraft-server:java25
+    container_name: minecraft
+    restart: unless-stopped
+    network_mode: "service:ts-minecraft"   # share the tailnet netns; 25565 rides the tailnet
+    depends_on:
+      - ts-minecraft
+    labels:
+      # when watchtower updates the tailscale sidecar, restart MC after so it
+      # re-attaches to the new netns (else it's orphaned -> unreachable)
+      com.centurylinklabs.watchtower.depends-on: "ts-minecraft"
+    env_file:
+      - minecraft.env          # RCON_PASSWORD (pinned so it survives redeploys; bot relies on it)
+    environment:
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "LATEST"   # itzg resolves latest Paper at (re)start; pin once players settle
+      DIFFICULTY: "peaceful"   # no hostile mobs; survives restarts
+      CREATE_CONSOLE_IN_PIPE: "true"   # enables mc-send-to-console (rcon mangles gamerule on this build)
+      MEMORY: "3G"
+      USE_AIKAR_FLAGS: "true"
+      UID: "10000"        # match T7 exFAT mount owner (host 110000)
+      GID: "10000"
+      TZ: "Pacific/Auckland"
+      MOTD: "Dogs and Bogs"
+      VIEW_DISTANCE: "10"
+      PREVENT_PROXY_CONNECTIONS: "false"   # players reach the server via the GCP TCP relay; skip the Mojang IP-match check
+    volumes:
+      - /opt/minecraft/data:/data
+    stdin_open: true
+    tty: true
+
+volumes:
+  mc-tsstate:

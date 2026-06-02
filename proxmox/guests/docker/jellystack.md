@@ -21,12 +21,13 @@ and churny. They live on CT 102 at `/opt/jellystack/appdata` (the mp0 ext4 volum
 | Path | Backing | Notes |
 |------|---------|-------|
 | `/opt/jellystack/appdata` | mp0, 8G ext4 on `local` | configs + SQLite DBs + Tailscale state |
-| `/opt/jellystack/media`   | mp1, bind of `/mnt/t7/jellystack-media` (T7, exfat) | media (see reconciliation note) |
+| `/opt/jellystack/media`   | mp1, bind of `/mnt/t7/jellystack-media` (T7, ext4) | media (see reconciliation note) |
 | `/var/lib/docker`         | mp2, 8G ext4 on `local` | images/layers, kept off the 4G rootfs |
 
 PUID/PGID are `10000` (carried over from the phone). The unprivileged LXC maps
-container `10000` to host `110000`; the T7 is mounted with `uid=110000,gid=110000`
-so the containers can write to it.
+container `10000` to host `110000`; media files on the T7 are owned `110000:110000`
+so the containers (uid `10000` inside) can write to them. The T7 is ext4 (mounted by
+UUID via `/etc/fstab`), so ownership is stored on disk — no forced mount uid/gid.
 
 ## Deploy
 
@@ -130,9 +131,38 @@ indexers resolve directly, and neither remaining failure is an IP-block, so it w
 add risk (compose change, gluetun firewall ports, breaks the `prowlarr` hostname for
 inter-container calls) with no benefit.
 
+## T7 converted exfat -> ext4 (done)
+
+The T7 was reformatted from exFAT to ext4 so the *arr apps get real Unix ownership
+and hardlinks (exFAT forces a single mount uid/gid and can't hardlink, which breaks
+atomic import moves). exFAT has no shrink tool, so the convert needed a full evac:
+
+1. Attached a 465GB ext4 USB disk (`sdc`, mounted `/mnt/sdc`, ~328GB free).
+2. `rsync` the entire T7 (164GB: jellystack-media + PS4 `CUSA00473` + minecraft +
+   itemzflow) to `/mnt/sdc/t7-staging` as a full backup; verified file counts.
+3. `mkfs.ext4 /dev/sdb1`; updated `/etc/fstab` to mount the new ext4 UUID at `/mnt/t7`
+   (dropped the old `uid=/gid=/umask=` exFAT mount options).
+4. `rsync` everything back. Files keep `110000:110000` ownership (= container 10000).
+
+The `/mnt/sdc/t7-staging` copy is left in place as a backup. mp1 (jellystack-media)
+and mp3 (minecraft) are path-based binds, so they survived the reformat unchanged.
+
+## Second fold: old 2023 sdc library (done)
+
+The `sdc` disk also carried an older 2023 media-server backup. Its library was folded
+into the stack (`rsync --ignore-existing`, so the existing jellystack copies win),
+following the same paths/naming: `data/movies -> movies`, `data/series -> tv`,
+`data/music -> music`. Added:
+
+- Radarr: Me Before You (2016), The Little Mermaid (2023), The Menu (2022) - all
+  imported with files (A Man Called Otto was already present, skipped as a dupe).
+- Sonarr: StartUp (20/30 eps) and The Last of Us (9/16 eps) - partial seasons, since
+  the old library only had those episodes.
+- Jellyfin: music library populated (Adele, Lewis Capaldi, Tom Walker) plus the new
+  movies/series; full library rescan run.
+
 ## Still open
 
-- The entire T7 `media-server/` directory was removed (its library was folded in,
-  the ~83GB downloads and defunct config deleted). The T7 now holds only
-  `jellystack-media/` plus unrelated PS4 game data.
-- Convert the T7 to ext4 once a spare >=200GB disk is available to stage its data.
+- The entire phone-era T7 `media-server/` directory was already removed in the first
+  migration. The T7 now holds `jellystack-media/`, `minecraft/`, and PS4 game data,
+  all on ext4.
