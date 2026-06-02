@@ -24,8 +24,9 @@ on `eno0`. Onboard WiFi disabled.
 
 Hardware: Intel i7-8650U, 16 GB RAM. `sda` 64 GB SanDisk SSD (boot, `local`,
 `local-lvm`); `sdb` 931 GB Samsung T7 (**ext4**, data; bound into CT 102 as mp1
-`jellystack-media` + mp3 `minecraft`); `sdc` 465 GB USB HDD (ext4, empty
-spare, mounted `/mnt/sdc`; was the staging disk for the T7 exFAT->ext4 conversion).
+`jellystack-media` + mp3 `minecraft`); `sdc` 465 GB USB HDD (ext4,
+mounted `/mnt/sdc`; holds the daily `sdc-backup.sh` backup of appdata + minecraft +
+PS4 data - see Common workflows).
 
 All guests were created with the [community Proxmox helper scripts](https://community-scripts.github.io/ProxmoxVE/).
 
@@ -127,6 +128,19 @@ ssh homelab 'pct exec 102 -- docker compose -f <file> up -d'
 ```
 `watchtower` updates images daily at 04:00 Pacific/Auckland and prunes old images.
 
+### Backups to sdc
+`proxmox/scripts/sdc-backup.sh` runs daily at 03:30 (via `/etc/cron.d/sdc-backup`)
+and mirrors the irreplaceable data to `/mnt/sdc/backup`: CT102 `appdata` (*arr DBs +
+Jellyfin metadata + Tailscale state) and the T7's minecraft world, music, and PS4
+data. It deliberately skips the raw video media (`movies`/`tv`/`downloads`, ~218GB)
+since that is redownloadable. Run on demand and check the log:
+```shell
+ssh homelab '/usr/local/bin/sdc-backup.sh; tail -5 /var/log/sdc-backup.log'
+```
+To restore appdata: stop the stack, replace `/opt/jellystack/appdata` from
+`/mnt/sdc/backup/ct102-appdata`, fix ownership (`chown -R 10000:10000`, TS state dirs
+`0:0`), bring the stack back up.
+
 ### Headscale (GCP) via terraform
 Run through the 3musketeers Make targets (terraform runs in a container, no local
 install needed):
@@ -162,7 +176,8 @@ through terraform/GCP, not by inspecting the lab.
   VPN by design — no port forwarding.
 - The Samsung T7 (`sdb`, now ext4) is the data disk for CT 102 (media + minecraft
   world). Don't reformat or repartition it without an explicit, confirmed request.
-  `sdc` is an empty spare disk; there is currently no off-T7 backup of the media.
+  `sdc` holds the daily backup of the irreplaceable data (appdata DBs, minecraft
+  world, PS4 saves); the raw media is deliberately not backed up (redownloadable).
 - Snapshot/back up a guest before risky changes: `ssh homelab 'vzdump <vmid>'`.
 
 ## Quick reference

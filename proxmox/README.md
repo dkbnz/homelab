@@ -15,8 +15,9 @@ documented and repeatable.
   - `sdb` 931 GB Samsung T7 (ext4) - data disk, mounted by UUID at host `/mnt/t7`,
     bind-mounted into CT 102 (mp1 media, mp3 minecraft). Converted from exFAT to ext4
     so the *arr apps get real ownership + hardlinks.
-  - `sdc` 465 GB USB HDD (ext4) - mounted `/mnt/sdc`; empty spare (was the staging
-    disk for the T7 exFAT->ext4 conversion, since wiped)
+  - `sdc` 465 GB USB HDD (ext4) - mounted `/mnt/sdc`; holds the daily backup of the
+    irreplaceable data (`scripts/sdc-backup.sh`: appdata + minecraft + PS4 data, not
+    the redownloadable media)
 - The `local-lvm` thin pool was extended to fill the volume group after it hit 100%
   (a runaway Docker pull); keep an eye on `pvesm status` before allocating disks.
 - **Network**: single bridge `vmbr0` on `eno0`. Onboard WiFi is disabled.
