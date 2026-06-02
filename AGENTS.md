@@ -24,8 +24,8 @@ on `eno0`. Onboard WiFi disabled.
 
 Hardware: Intel i7-8650U, 16 GB RAM. `sda` 64 GB SanDisk SSD (boot, `local`,
 `local-lvm`); `sdb` 931 GB Samsung T7 (**ext4**, data; bound into CT 102 as mp1
-`jellystack-media` + mp3 `minecraft`); `sdc` 465 GB USB HDD (ext4, holds the T7
-staging backup from the exFAT->ext4 conversion, mounted `/mnt/sdc`).
+`jellystack-media` + mp3 `minecraft`); `sdc` 465 GB USB HDD (ext4, empty
+spare, mounted `/mnt/sdc`; was the staging disk for the T7 exFAT->ext4 conversion).
 
 All guests were created with the [community Proxmox helper scripts](https://community-scripts.github.io/ProxmoxVE/).
 
@@ -162,7 +162,7 @@ through terraform/GCP, not by inspecting the lab.
   VPN by design — no port forwarding.
 - The Samsung T7 (`sdb`, now ext4) is the data disk for CT 102 (media + minecraft
   world). Don't reformat or repartition it without an explicit, confirmed request.
-  `sdc` holds the staging backup of the T7 contents; don't wipe it casually.
+  `sdc` is an empty spare disk; there is currently no off-T7 backup of the media.
 - Snapshot/back up a guest before risky changes: `ssh homelab 'vzdump <vmid>'`.
 
 ## Quick reference

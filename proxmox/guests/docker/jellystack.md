@@ -144,8 +144,10 @@ atomic import moves). exFAT has no shrink tool, so the convert needed a full eva
    (dropped the old `uid=/gid=/umask=` exFAT mount options).
 4. `rsync` everything back. Files keep `110000:110000` ownership (= container 10000).
 
-The `/mnt/sdc/t7-staging` copy is left in place as a backup. mp1 (jellystack-media)
-and mp3 (minecraft) are path-based binds, so they survived the reformat unchanged.
+The `/mnt/sdc/t7-staging` copy served as the backup during the convert and was wiped
+afterwards (sdc is now an empty spare) - so there is no off-T7 backup of the media at
+present. mp1 (jellystack-media) and mp3 (minecraft) are path-based binds, so they
+survived the reformat unchanged.
 
 ## Second fold: old 2023 sdc library (done)
 
