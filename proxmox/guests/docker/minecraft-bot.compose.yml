@@ -1,0 +1,21 @@
+# Discord whitelist bot for the Minecraft server (CT 102).
+# Listens for !invite <username> in an allowed channel and runs `whitelist add`
+# over rcon. network_mode host so it can reach rcon published on the LXC loopback
+# (127.0.0.1:25575, see ts-minecraft ports in minecraft.compose.yml — not public).
+# Secrets (DISCORD_TOKEN, RCON_PASSWORD) live in minecraft-bot.env (encrypted).
+services:
+  mc-discord-bot:
+    image: python:3.12-slim
+    container_name: mc-discord-bot
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - minecraft-bot.env
+    environment:
+      RCON_HOST: "127.0.0.1"
+      RCON_PORT: "25575"
+      # ALLOWED_CHANNEL_ID set in minecraft-bot.env to restrict to one channel
+    volumes:
+      - /opt/minecraft/minecraft-bot.py:/app/bot.py:ro
+      - /opt/minecraft/data/logs:/logs:ro      # tail latest.log for join/leave events
+    command: sh -c "pip install --no-cache-dir discord.py mcrcon && python -u /app/bot.py"

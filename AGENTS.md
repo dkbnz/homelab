@@ -23,7 +23,9 @@ on `eno0`. Onboard WiFi disabled.
 | 102 | LXC  | docker   | `192.168.1.30`   | Docker host (watchtower + service stacks)|
 
 Hardware: Intel i7-8650U, 16 GB RAM. `sda` 64 GB SanDisk SSD (boot, `local`,
-`local-lvm`); `sdb` 931 GB Samsung T7 (data, passed to CT 102 as `dev0`).
+`local-lvm`); `sdb` 931 GB Samsung T7 (**ext4**, data; bound into CT 102 as mp1
+`jellystack-media` + mp3 `minecraft`); `sdc` 465 GB USB HDD (ext4, holds the T7
+staging backup from the exFAT->ext4 conversion, mounted `/mnt/sdc`).
 
 All guests were created with the [community Proxmox helper scripts](https://community-scripts.github.io/ProxmoxVE/).
 
@@ -64,7 +66,9 @@ Makefile                 tf-* and ansible-up targets (run tools via docker compo
 ```
 
 What is actually running right now: HAOS VM, AdGuard, and on the Docker LXC the
-**jellystack** media stack (12 containers) plus `watchtower`. The `services/` stacks
+**jellystack** media stack (12 containers), a **minecraft** Paper server with its
+Tailscale sidecar + Discord bot (see `proxmox/guests/docker/minecraft.md`), plus
+`watchtower`. The `services/` stacks
 are defined but **not deployed**. The root `docker-compose-service.yml` is a superseded
 earlier *arr stack, kept for reference only — jellystack
 (`proxmox/guests/docker/jellystack.md`) is the real one. Verify with
@@ -156,8 +160,9 @@ through terraform/GCP, not by inspecting the lab.
   creating disks, restoring backups, or pulling large images.
 - Don't expose services to the internet. Remote access is via the headscale/tailscale
   VPN by design — no port forwarding.
-- The Samsung T7 (`sdb`) is the data disk for CT 102. Don't reformat or repartition
-  it without an explicit, confirmed request.
+- The Samsung T7 (`sdb`, now ext4) is the data disk for CT 102 (media + minecraft
+  world). Don't reformat or repartition it without an explicit, confirmed request.
+  `sdc` holds the staging backup of the T7 contents; don't wipe it casually.
 - Snapshot/back up a guest before risky changes: `ssh homelab 'vzdump <vmid>'`.
 
 ## Quick reference
