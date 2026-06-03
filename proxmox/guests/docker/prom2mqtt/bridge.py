@@ -128,6 +128,14 @@ def publish_discovery(client):
         )
 
 
+def on_connect(client, userdata, flags, reason_code, properties):
+    # (Re)announce on every (re)connect - publishes before CONNACK are dropped
+    # by paho, and HA needs the discovery configs again after its own restarts.
+    print(f"connected to MQTT ({reason_code})")
+    client.publish(AVAILABILITY_TOPIC, "online", retain=True)
+    publish_discovery(client)
+
+
 def main():
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2, client_id="homelab-prom2mqtt"
@@ -135,10 +143,9 @@ def main():
     if MQTT_USER:
         client.username_pw_set(MQTT_USER, MQTT_PASS)
     client.will_set(AVAILABILITY_TOPIC, "offline", retain=True)
+    client.on_connect = on_connect
     client.connect(MQTT_HOST, MQTT_PORT, keepalive=120)
     client.loop_start()
-    client.publish(AVAILABILITY_TOPIC, "online", retain=True)
-    publish_discovery(client)
 
     while True:
         for key, (_, _, _, expr) in SENSORS.items():
