@@ -1,0 +1,13 @@
+# Block appended to /mnt/data/supervisor/homeassistant/configuration.yaml on the
+# HAOS VM. Exposes HA entity states at /api/prometheus so Prometheus (CT 102)
+# can scrape them (Starlink throughput/ping, Zigbee plug power, ESPHome, ...).
+# The scrape uses a long-lived access token (HA profile -> Security); the token
+# lives in proxmox/guests/docker/monitoring.env, not here.
+#
+# Apply: append to configuration.yaml, then `ha core check && ha core restart`.
+prometheus:
+  namespace: hass
+  filter:
+    exclude_entity_globs:
+      - sensor.*_uptime
+      - automation.*

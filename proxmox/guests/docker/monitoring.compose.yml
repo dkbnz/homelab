@@ -1,0 +1,184 @@
+# Monitoring stack on CT 102 - Prometheus + Grafana + exporters.
+#
+# Hardware -> application observability:
+#   - Proxmox host metrics come from bare-metal node_exporter (:9100) and
+#     prometheus-pve-exporter (:9221) on 192.168.1.10 (see proxmox/host/).
+#   - CT 102 container metrics from cadvisor, CT 102 OS metrics from node-exporter.
+#   - App metrics from exportarr (sonarr/radarr/prowlarr/sabnzbd), the qbittorrent
+#     exporter (lives in jellystack.compose.yml, pinned to gluetun's netns),
+#     Jellyfin's native /metrics, Caddy's admin /metrics, the minecraft exporter
+#     (host netns, rcon on the LXC loopback - same pattern as mc-discord-bot),
+#     the AdGuard exporter (CT 101 API), and watchtower's metrics API.
+#   - Home Assistant is scraped at /api/prometheus (long-lived token).
+#   - prom2mqtt pushes a few summary sensors back into HA via Mosquitto (MQTT
+#     discovery), so HA dashboards/automations can react to infra health.
+#
+# TSDB + Grafana data live on the T7 via the mp4 bind (/opt/monitoring/data) -
+# the local SSD has no headroom. Retention capped by time AND size.
+#
+# Prometheus/Grafana are pinned to major versions and excluded from watchtower
+# (label) - surprise majors break dashboards/flags. Exporters float on :latest.
+#
+# Deploy: see monitoring.md. Secrets in monitoring.env (encrypted via transcrypt).
+services:
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    container_name: prometheus
+    user: "10000:10000"
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./secrets:/etc/prometheus/secrets:ro
+      - /opt/monitoring/data/prometheus:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=90d
+      - --storage.tsdb.retention.size=40GB
+      - --web.enable-lifecycle
+    ports:
+      - 9090:9090
+    networks:
+      - default
+      - jellystack   # reach jellyfin:8096 + caddy:2019 by name
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:11.6.1
+    container_name: grafana
+    user: "10000:10000"
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
+    env_file:
+      - monitoring.env   # GF_SECURITY_ADMIN_USER / GF_SECURITY_ADMIN_PASSWORD
+    environment:
+      - TZ=${TZ}
+      - GF_SERVER_ROOT_URL=http://grafana.home
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+    volumes:
+      - /opt/monitoring/data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+
+  # Per-container CPU/mem/net/io for everything on CT 102.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    command:
+      - --housekeeping_interval=30s
+      - --docker_only=true
+    restart: unless-stopped
+
+  # CT 102's own OS view (the host's node_exporter on .10 covers the hardware).
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node-exporter
+    pid: host
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|var/lib/docker)($$|/)
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
+  # ---- exportarr: one process per *arr app ----
+  sonarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: sonarr-exporter
+    command: ["sonarr"]
+    environment:
+      - PORT=9707
+      - URL=http://192.168.1.30:8989
+      - APIKEY=${SONARR_API_KEY}
+    restart: unless-stopped
+
+  radarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: radarr-exporter
+    command: ["radarr"]
+    environment:
+      - PORT=9708
+      - URL=http://192.168.1.30:7878
+      - APIKEY=${RADARR_API_KEY}
+    restart: unless-stopped
+
+  prowlarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: prowlarr-exporter
+    command: ["prowlarr"]
+    environment:
+      - PORT=9709
+      - URL=http://192.168.1.30:9696
+      - APIKEY=${PROWLARR_API_KEY}
+    restart: unless-stopped
+
+  sabnzbd-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: sabnzbd-exporter
+    command: ["sabnzbd"]
+    environment:
+      - PORT=9710
+      - URL=http://192.168.1.30:8081
+      - APIKEY=${SAB_API_KEY}
+    restart: unless-stopped
+
+  # AdGuard (CT 101) query/blocking stats via its API.
+  adguard-exporter:
+    image: ebrianne/adguard-exporter:latest
+    container_name: adguard-exporter
+    environment:
+      - adguard_protocol=http
+      - adguard_hostname=192.168.1.20
+      - adguard_port=80
+      - adguard_username=${ADGUARD_USER}
+      - adguard_password=${ADGUARD_PASS}
+      - server_port=9617
+      - interval=30s
+    restart: unless-stopped
+
+  # Paper server stats over rcon. Host netns so it can reach rcon published on
+  # the LXC loopback (127.0.0.1:25575) - same pattern as mc-discord-bot.
+  # Listens on :9150 (Prometheus scrapes 192.168.1.30:9150).
+  minecraft-exporter:
+    image: ghcr.io/dirien/minecraft-exporter:latest
+    container_name: minecraft-exporter
+    network_mode: host
+    command:
+      - --mc.rcon-address=127.0.0.1:25575
+      - --mc.rcon-password=${RCON_PASSWORD}
+      - --mc.world=/world
+      - --web.listen-address=:9150
+    volumes:
+      - /opt/minecraft/data/world:/world:ro
+    restart: unless-stopped
+
+  # Queries Prometheus and republishes a few summary sensors to HA's Mosquitto
+  # via MQTT discovery (host CPU/temp, root + local-lvm + T7 disk %, CT 102 mem,
+  # scrape-target up count). Built locally - watchtower ignores local images.
+  prom2mqtt:
+    build: ./prom2mqtt
+    image: prom2mqtt:local
+    container_name: prom2mqtt
+    env_file:
+      - monitoring.env   # MQTT_HOST/PORT/USER/PASS
+    environment:
+      - PROM_URL=http://prometheus:9090
+      - INTERVAL_SECONDS=60
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+networks:
+  jellystack:
+    name: jellystack_default
+    external: true

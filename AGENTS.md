@@ -54,6 +54,11 @@ proxmox/                 Current Proxmox state (source of truth)
     docker/jellystack.compose.yml   migrated *arr/media stack (deployed on CT 102)
     docker/jellystack.env           jellystack secrets (ENCRYPTED via transcrypt)
     docker/jellystack.md            jellystack deploy + storage + tailscale notes
+    docker/monitoring.compose.yml   Prometheus/Grafana/exporters (deployed on CT 102)
+    docker/monitoring.env           monitoring secrets (ENCRYPTED via transcrypt)
+    docker/monitoring.md            observability layout + deploy notes
+  host/                  Bare-metal host services (node_exporter, pve-exporter;
+                         pve.yml ENCRYPTED via transcrypt)
   scripts/snapshot.sh    Pull live guest/app config back into the repo
 terraform/               GCP headscale control server (separate concern; state encrypted)
   headscale/             Headscale module + cloud-init templates
@@ -67,10 +72,12 @@ Makefile                 tf-* and ansible-up targets (run tools via docker compo
 ```
 
 What is actually running right now: HAOS VM, AdGuard, and on the Docker LXC the
-**jellystack** media stack (12 containers), a **minecraft** Paper server with its
-Tailscale sidecar + Discord bot (see `proxmox/guests/docker/minecraft.md`), plus
-`watchtower`. The `services/` stacks
-are defined but **not deployed**. The root `docker-compose-service.yml` is a superseded
+**jellystack** media stack (12 containers + qbittorrent-exporter), a **minecraft**
+Paper server with its Tailscale sidecar + Discord bot (see
+`proxmox/guests/docker/minecraft.md`), `watchtower`, and the **monitoring** stack
+(Prometheus + Grafana + exporters, `proxmox/guests/docker/monitoring.md`). The
+Proxmox host itself runs bare-metal node_exporter + pve-exporter (`proxmox/host/`).
+The `services/` stacks are defined but **not deployed**. The root `docker-compose-service.yml` is a superseded
 earlier *arr stack, kept for reference only — jellystack
 (`proxmox/guests/docker/jellystack.md`) is the real one. Verify with
 `pct exec 102 -- docker ps`.
@@ -188,5 +195,6 @@ ssh homelab 'pct list'                       # LXCs
 ssh homelab 'pvesm status'                   # storage usage
 ssh homelab 'pct exec 102 -- docker ps'      # docker containers
 ssh homelab 'pct exec 101 -- cat /opt/AdGuardHome/AdGuardHome.yaml'
+curl -s http://192.168.1.30:9090/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health}'   # scrape health
 proxmox/scripts/snapshot.sh                  # reconcile live -> repo
 ```

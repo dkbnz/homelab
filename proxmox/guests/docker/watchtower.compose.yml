@@ -13,8 +13,13 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8085:8080   # metrics API for Prometheus (token in watchtower.env)
+    env_file:
+      - watchtower.env   # WATCHTOWER_HTTP_API_TOKEN (encrypted via transcrypt)
     environment:
       - TZ=Pacific/Auckland
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_SCHEDULE=0 0 4 * * *
       - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_HTTP_API_METRICS=true   # /v1/metrics; scheduled updates keep running
