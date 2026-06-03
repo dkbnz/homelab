@@ -1,0 +1,103 @@
+# Prometheus scrape config - the single TSDB for the whole homelab.
+# Layers: Proxmox host (bare-metal exporters) -> guests -> containers -> apps -> HA.
+# Secret token files under /etc/prometheus/secrets are written at deploy from
+# monitoring.env (see monitoring.md); they are not baked into this file.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ---- hardware / hypervisor (bare-metal on 192.168.1.10) ----
+  - job_name: node-proxmox
+    static_configs:
+      - targets: ["192.168.1.10:9100"]
+        labels:
+          node: proxmox
+
+  - job_name: pve
+    metrics_path: /pve
+    params:
+      target: ["localhost"]
+    static_configs:
+      - targets: ["192.168.1.10:9221"]
+        labels:
+          node: proxmox
+
+  # ---- CT 102 OS + containers ----
+  - job_name: node-ct102
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          node: ct102
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # ---- applications ----
+  - job_name: sonarr
+    static_configs:
+      - targets: ["sonarr-exporter:9707"]
+
+  - job_name: radarr
+    static_configs:
+      - targets: ["radarr-exporter:9708"]
+
+  - job_name: prowlarr
+    static_configs:
+      - targets: ["prowlarr-exporter:9709"]
+
+  - job_name: sabnzbd
+    static_configs:
+      - targets: ["sabnzbd-exporter:9710"]
+
+  # qbittorrent-exporter rides gluetun's netns (jellystack.compose.yml);
+  # gluetun publishes :8090 for it.
+  - job_name: qbittorrent
+    static_configs:
+      - targets: ["192.168.1.30:8090"]
+
+  # Jellyfin native metrics (EnableMetrics=true in system.xml). Reached by the
+  # ts-jellyfin network alias - prometheus is attached to jellystack_default.
+  - job_name: jellyfin
+    static_configs:
+      - targets: ["jellyfin:8096"]
+
+  # Caddy admin endpoint (admin :2019 + servers>metrics in the Caddyfile).
+  - job_name: caddy
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["caddy:2019"]
+
+  # Paper server via rcon; exporter is in the CT 102 host netns.
+  - job_name: minecraft
+    static_configs:
+      - targets: ["192.168.1.30:9150"]
+
+  # AdGuard Home on CT 101 via its exporter.
+  - job_name: adguard
+    static_configs:
+      - targets: ["adguard-exporter:9617"]
+
+  # Watchtower metrics API (token-guarded); publishes :8085 on CT 102.
+  - job_name: watchtower
+    metrics_path: /v1/metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/watchtower.token
+    static_configs:
+      - targets: ["192.168.1.30:8085"]
+
+  # ---- Home Assistant (VM 100, 192.168.1.40 - DHCP, reserve it on the router).
+  # Long-lived access token created in the HA UI (profile -> security).
+  - job_name: homeassistant
+    metrics_path: /api/prometheus
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/ha.token
+    static_configs:
+      - targets: ["192.168.1.40:8123"]

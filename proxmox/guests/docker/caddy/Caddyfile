@@ -1,5 +1,11 @@
 {
     auto_https off
+    # Admin API on all interfaces so Prometheus (monitoring stack, attached to
+    # this network) can scrape /metrics on :2019. Not published to the host.
+    admin :2019
+    servers {
+        metrics
+    }
 }
 
 http://jellyfin.home {
@@ -25,4 +31,12 @@ http://qbittorrent.home {
 }
 http://flaresolverr.home {
     reverse_proxy flaresolverr:8191
+}
+# Monitoring stack (separate compose project) - reached via its host-published
+# ports rather than container names.
+http://grafana.home {
+    reverse_proxy 192.168.1.30:3000
+}
+http://prometheus.home {
+    reverse_proxy 192.168.1.30:9090
 }

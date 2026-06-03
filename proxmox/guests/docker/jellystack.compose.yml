@@ -168,6 +168,7 @@ services:
       - 8080:8080
       - 6881:6881
       - 6881:6881/udp
+      - 8090:8090   # qbittorrent-exporter (rides this netns); Prometheus scrapes it
     restart: unless-stopped
 
   qbittorrent:
@@ -184,6 +185,24 @@ services:
     volumes:
       - ./appdata/qbittorrent:/config
       - ./media/downloads:/downloads
+    restart: unless-stopped
+
+  # Prometheus exporter for qBittorrent. Lives in gluetun's netns (same as qBit)
+  # so it reaches the WebUI on localhost; cross-project network_mode isn't
+  # possible, which is why it's here and not in monitoring.compose.yml.
+  qbittorrent-exporter:
+    image: ghcr.io/esanchezm/prometheus-qbittorrent-exporter:latest
+    container_name: qbittorrent-exporter
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+      - qbittorrent
+    environment:
+      - QBITTORRENT_HOST=localhost
+      - QBITTORRENT_PORT=8080
+      - QBITTORRENT_USER=${QBIT_USER}
+      - QBITTORRENT_PASS=${QBIT_PASS}
+      - EXPORTER_PORT=8090
     restart: unless-stopped
 
   # =========================================================

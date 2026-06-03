@@ -30,5 +30,12 @@ captured here.
   after midnight, restore at 07:00. Coexists with the in-HA presence automations
   (`presence_plug_off` / `presence_plug_on`) on the same plugs; see the file header.
 
+## Tracked config blocks
+
+- `prometheus-config.yaml` — `prometheus:` integration block appended to
+  `configuration.yaml`. Prometheus on CT 102 scrapes `/api/prometheus` with a
+  long-lived token; prom2mqtt pushes infra summary sensors back in via
+  Mosquitto. See `proxmox/guests/docker/monitoring.md`.
+
 To change one: edit the live `automations.yaml`, `ha core check`, `ha core restart`,
 then mirror the change back here.
