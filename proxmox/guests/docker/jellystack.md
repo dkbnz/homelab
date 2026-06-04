@@ -48,7 +48,9 @@ network namespace. Reach them over Tailscale (`https://jellyfin.<tailnet>`,
 `https://jellyseerr.<tailnet>`) or on the LAN via the Caddy proxy (below). The rest
 are on the LAN at `192.168.1.30`: Sonarr `:8989`, Radarr `:7878`, Prowlarr `:9696`,
 SABnzbd `:8081`, qBittorrent `:8080` (via gluetun), FlareSolverr `:8191`,
-Lidarr `:8686`, Navidrome `:4533`, slskd `:5030` (via gluetun).
+Lidarr `:8686`, slskd `:5030` (via gluetun). Navidrome has a `ts-navidrome`
+sidecar like jellyfin/jellyseerr - no host port, reach it at
+`https://navidrome.<tailnet>` or `http://navidrome.home`.
 
 ## Local access (Caddy + AdGuard)
 
@@ -220,7 +222,9 @@ Component notes:
   Prowlarr (full sync - indexers propagate automatically).
 - **Navidrome** admin login is `NAVIDROME_ADMIN_USER`/`NAVIDROME_ADMIN_PASS` in
   `jellystack.env` (stored in Navidrome's own DB; recorded in the env file so it
-  isn't lost). Library scans hourly (`ND_SCANSCHEDULE=1h`).
+  isn't lost). Library scans hourly (`ND_SCANSCHEDULE=1h`). Fronted by the
+  `ts-navidrome` Tailscale sidecar (`jellystack/ts-navidrome/serve.json`), so
+  phone Subsonic clients stream remotely at `https://navidrome.<tailnet>`.
 
 Backups: all four apps keep state under `appdata/` (covered by the daily
 `sdc-backup.sh`); the music files themselves are on the T7 and are also in the
