@@ -55,6 +55,23 @@ scrape_configs:
     static_configs:
       - targets: ["sabnzbd-exporter:9710"]
 
+  - job_name: lidarr
+    static_configs:
+      - targets: ["lidarr-exporter:9711"]
+
+  # slskd native metrics (SLSKD_METRICS=true, auth disabled - LAN only).
+  # slskd rides gluetun's netns; gluetun publishes :5030 (same pattern as
+  # the qbittorrent job above).
+  - job_name: slskd
+    static_configs:
+      - targets: ["192.168.1.30:5030"]
+
+  # Navidrome native metrics (ND_PROMETHEUS_ENABLED=true). Reached by
+  # container name - prometheus is attached to jellystack_default.
+  - job_name: navidrome
+    static_configs:
+      - targets: ["navidrome:4533"]
+
   # qbittorrent-exporter rides gluetun's netns (jellystack.compose.yml);
   # gluetun publishes :8090 for it.
   - job_name: qbittorrent

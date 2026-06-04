@@ -9,8 +9,8 @@ the service list and `proxmox/host/README.md` for the bare-metal host exporters.
 | Where | What |
 |-------|------|
 | Proxmox host (.10) | node_exporter :9100, prometheus-pve-exporter :9221 (systemd, `proxmox/host/`) |
-| CT 102 `/opt/monitoring` | this stack: Prometheus :9090, Grafana :3000, cadvisor, node-exporter, exportarr x4, adguard-exporter, minecraft-exporter :9150 (host netns), prom2mqtt |
-| jellystack | qbittorrent-exporter (gluetun netns, :8090), Jellyfin native /metrics, Caddy admin /metrics :2019 |
+| CT 102 `/opt/monitoring` | this stack: Prometheus :9090, Grafana :3000, cadvisor, node-exporter, exportarr x5 (sonarr/radarr/prowlarr/sabnzbd/lidarr), adguard-exporter, minecraft-exporter :9150 (host netns), prom2mqtt |
+| jellystack | qbittorrent-exporter (gluetun netns, :8090), Jellyfin native /metrics, Caddy admin /metrics :2019, slskd native /metrics (gluetun netns, :5030), Navidrome native /metrics :4533 |
 | watchtower | metrics API :8085 (token in `watchtower.env`) |
 | HAOS VM (.40) | scraped at `/api/prometheus` (long-lived token); Mosquitto receives prom2mqtt sensors |
 
@@ -58,6 +58,13 @@ Then check http://prometheus.home/targets - everything should be UP.
   localhost" in qBit options and leave them blank.
 - **AdGuard**: exporter uses the web UI login (`ADGUARD_USER`/`ADGUARD_PASS` in
   `monitoring.env`).
+- **Lidarr**: exportarr like the other *arrs (`LIDARR_API_KEY` in
+  `monitoring.env`, mirrors jellystack.env).
+- **slskd**: native metrics via `SLSKD_METRICS=true` +
+  `SLSKD_METRICS_NO_AUTH=true` in jellystack.compose.yml; scraped at
+  `192.168.1.30:5030/metrics` (gluetun publishes the port).
+- **Navidrome**: native metrics via `ND_PROMETHEUS_ENABLED=true`; scraped at
+  `navidrome:4533/metrics` over the jellystack network.
 - **Home Assistant**:
   1. Append `proxmox/guests/haos/prometheus-config.yaml` to HA's
      `configuration.yaml`, `ha core check && ha core restart`.

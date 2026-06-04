@@ -72,7 +72,8 @@ Makefile                 tf-* and ansible-up targets (run tools via docker compo
 ```
 
 What is actually running right now: HAOS VM, AdGuard, and on the Docker LXC the
-**jellystack** media stack (12 containers + qbittorrent-exporter), a **minecraft**
+**jellystack** media stack (video + the music pipeline: Lidarr, slskd, Soularr,
+Navidrome — see `proxmox/guests/docker/jellystack.md`), a **minecraft**
 Paper server with its Tailscale sidecar + Discord bot (see
 `proxmox/guests/docker/minecraft.md`), `watchtower`, and the **monitoring** stack
 (Prometheus + Grafana + exporters, `proxmox/guests/docker/monitoring.md`). The
