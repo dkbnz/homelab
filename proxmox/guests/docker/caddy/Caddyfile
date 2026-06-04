@@ -32,6 +32,15 @@ http://qbittorrent.home {
 http://flaresolverr.home {
     reverse_proxy flaresolverr:8191
 }
+http://lidarr.home {
+    reverse_proxy lidarr:8686
+}
+http://navidrome.home {
+    reverse_proxy navidrome:4533
+}
+http://slskd.home {
+    reverse_proxy gluetun:5030   # slskd shares gluetun's netns
+}
 # Monitoring stack (separate compose project) - reached via its host-published
 # ports rather than container names.
 http://grafana.home {

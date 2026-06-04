@@ -171,6 +171,7 @@ services:
       - 6881:6881
       - 6881:6881/udp
       - 8090:8090   # qbittorrent-exporter (rides this netns); Prometheus scrapes it
+      - 5030:5030   # slskd web/API (rides this netns too)
     restart: unless-stopped
 
   qbittorrent:
@@ -241,6 +242,93 @@ services:
     volumes:
       - ./appdata/unpackerr:/config
       - ./media/downloads:/downloads
+    restart: unless-stopped
+
+  # =========================================================
+  # Music pipeline: Lidarr -> (usenet/torrents via Prowlarr) or
+  # (Soulseek via Soularr + slskd). Navidrome serves the library.
+  # Requests go directly in the Lidarr UI (http://lidarr.home) -
+  # jellyseerr music support is still preview-only, not in stable.
+  # =========================================================
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/lidarr:/config
+      - ./media/music:/music
+      - ./media/downloads:/downloads
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+
+  # slskd — headless Soulseek client. Rides gluetun's netns like qBittorrent so
+  # all Soulseek traffic goes over the VPN; web/API published via gluetun :5030.
+  # API key for Soularr lives in appdata/slskd/slskd.yml (generated at deploy
+  # from jellystack/slskd/slskd.yml.tmpl — see jellystack.md); everything else
+  # is configured here via env. Shares the music library back (read-only).
+  slskd:
+    image: slskd/slskd:latest
+    container_name: slskd
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    user: ${PUID}:${PGID}
+    environment:
+      - SLSKD_SLSK_USERNAME=${SLSK_USER}
+      - SLSKD_SLSK_PASSWORD=${SLSK_PASS}
+      - SLSKD_USERNAME=${SLSKD_WEB_USER}
+      - SLSKD_PASSWORD=${SLSKD_WEB_PASS}
+      - SLSKD_DOWNLOADS_DIR=/downloads/complete
+      - SLSKD_INCOMPLETE_DIR=/downloads/incomplete
+      - SLSKD_SHARED_DIR=/music
+      - SLSKD_METRICS=true
+      - SLSKD_METRICS_NO_AUTH=true   # LAN/VPN only, same call as jellyfin /metrics
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/slskd:/app
+      - ./media/downloads/slskd:/downloads
+      - ./media/music:/music:ro
+    restart: unless-stopped
+
+  # Soularr — bridges Lidarr's wanted list to slskd. Polls Lidarr, searches
+  # Soulseek, downloads via slskd, triggers the Lidarr import. Config (API
+  # keys) in appdata/soularr/config.ini, generated at deploy from
+  # jellystack/soularr/config.ini.tmpl.
+  soularr:
+    image: mrusse08/soularr:latest
+    container_name: soularr
+    user: ${PUID}:${PGID}
+    environment:
+      - TZ=${TZ}
+      - SCRIPT_INTERVAL=300
+    volumes:
+      - ./appdata/soularr:/data
+      - ./media/downloads:/downloads
+    depends_on:
+      - lidarr
+    restart: unless-stopped
+
+  # Navidrome — music server (Subsonic API). Reads the same library Lidarr
+  # manages. LAN-only for now (http://navidrome.home or :4533); add a ts-*
+  # sidecar later if remote listening is wanted.
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    user: ${PUID}:${PGID}
+    environment:
+      - ND_MUSICFOLDER=/music
+      - ND_SCANSCHEDULE=1h
+      - ND_PROMETHEUS_ENABLED=true
+      - TZ=${TZ}
+    volumes:
+      - ./appdata/navidrome:/data
+      - ./media/music:/music:ro
+    ports:
+      - 4533:4533
     restart: unless-stopped
 
   # Reverse proxy for clean local URLs (http://jellyfin.home, http://jellyseerr.home).

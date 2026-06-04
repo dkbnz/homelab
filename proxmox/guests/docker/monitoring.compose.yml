@@ -122,6 +122,16 @@ services:
       - APIKEY=${PROWLARR_API_KEY}
     restart: unless-stopped
 
+  lidarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: lidarr-exporter
+    command: ["lidarr"]
+    environment:
+      - PORT=9711
+      - URL=http://192.168.1.30:8686
+      - APIKEY=${LIDARR_API_KEY}
+    restart: unless-stopped
+
   sabnzbd-exporter:
     image: ghcr.io/onedr0p/exportarr:latest
     container_name: sabnzbd-exporter

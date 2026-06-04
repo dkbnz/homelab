@@ -1,0 +1,10 @@
+# slskd config template. Only the parts that can't be set via env vars in the
+# compose file (api_keys is yaml-only). Deployed to
+# /opt/jellystack/appdata/slskd/slskd.yml with __SLSKD_API_KEY__ replaced from
+# jellystack.env (see jellystack.md "Deploy the music services").
+web:
+  authentication:
+    api_keys:
+      soularr:
+        key: __SLSKD_API_KEY__
+        cidr: 0.0.0.0/0,::/0

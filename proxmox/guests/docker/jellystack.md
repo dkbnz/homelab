@@ -47,7 +47,8 @@ Jellyfin and Jellyseerr have no host ports — they share their Tailscale sideca
 network namespace. Reach them over Tailscale (`https://jellyfin.<tailnet>`,
 `https://jellyseerr.<tailnet>`) or on the LAN via the Caddy proxy (below). The rest
 are on the LAN at `192.168.1.30`: Sonarr `:8989`, Radarr `:7878`, Prowlarr `:9696`,
-SABnzbd `:8081`, qBittorrent `:8080` (via gluetun), FlareSolverr `:8191`.
+SABnzbd `:8081`, qBittorrent `:8080` (via gluetun), FlareSolverr `:8191`,
+Lidarr `:8686`, Navidrome `:4533`, slskd `:5030` (via gluetun).
 
 ## Local access (Caddy + AdGuard)
 
@@ -64,6 +65,9 @@ hostname. The `caddy/Caddyfile` maps:
 | `http://sabnzbd.home`      | `sabnzbd:8080` |
 | `http://qbittorrent.home`  | `gluetun:8080` (qBittorrent shares gluetun's netns) |
 | `http://flaresolverr.home` | `flaresolverr:8191` |
+| `http://lidarr.home`       | `lidarr:8686` |
+| `http://navidrome.home`    | `navidrome:4533` |
+| `http://slskd.home`        | `gluetun:5030` (slskd shares gluetun's netns) |
 
 Name resolution is via an **AdGuard Home wildcard DNS rewrite** (`*.home` ->
 `192.168.1.30`, see `proxmox/guests/adguard/AdGuardHome.yaml`), so any new `.home`
@@ -171,6 +175,56 @@ following the same paths/naming: `data/movies -> movies`, `data/series -> tv`,
   the old library only had those episodes.
 - Jellyfin: music library populated (Adele, Lewis Capaldi, Tom Walker) plus the new
   movies/series; full library rescan run.
+
+## Music pipeline (Lidarr + slskd + Soularr + Navidrome)
+
+Request flow: add an artist/album in Lidarr (`http://lidarr.home`). Lidarr tries
+usenet/torrents via Prowlarr (qBittorrent + SABnzbd download clients, SAB category
+`music`). Whatever the indexers can't find lands on Lidarr's wanted list; Soularr
+polls that every 5 minutes, searches Soulseek, downloads via slskd, and triggers
+the Lidarr import. Navidrome serves the resulting `/music` library over the
+Subsonic API (use Symfonium/play:Sub etc. against `http://navidrome.home`).
+Jellyfin also indexes the same folder.
+
+Jellyseerr music requests are **not** wired up: music support only exists in the
+experimental `preview-music-support` image, not in stable. Revisit when it ships
+in a stable release.
+
+Component notes:
+
+- **slskd** rides gluetun's netns (all Soulseek traffic over the VPN); web/API at
+  `:5030` via gluetun's port publish, login `SLSKD_WEB_USER`/`SLSKD_WEB_PASS`.
+  The Soulseek account (`SLSK_USER`/`SLSK_PASS`, registered on first login) and
+  the rest of its config are env vars in the compose file. The one thing that
+  can't be env-configured is the API key Soularr uses - that lives in
+  `appdata/slskd/slskd.yml`, rendered from `jellystack/slskd/slskd.yml.tmpl`:
+
+  ```shell
+  KEY=$(grep ^SLSKD_API_KEY= jellystack.env | cut -d= -f2)
+  sed "s|__SLSKD_API_KEY__|$KEY|" jellystack/slskd/slskd.yml.tmpl > slskd.yml
+  # push to /opt/jellystack/appdata/slskd/slskd.yml (chown 10000:10000, chmod 600)
+  ```
+
+  slskd shares `/music` back to the Soulseek network read-only (sharing etiquette;
+  some peers block leechers). Surfshark has no port forwarding, so no inbound
+  Soulseek port - downloads from firewalled peers aren't possible, which costs
+  some availability but works fine in practice.
+- **Soularr** config is `appdata/soularr/config.ini`, rendered the same way from
+  `jellystack/soularr/config.ini.tmpl` (substitutes `__LIDARR_API_KEY__` and
+  `__SLSKD_API_KEY__`). slskd completed downloads land in
+  `media/downloads/slskd/complete`, which Soularr and Lidarr both see at
+  `/downloads/slskd/complete` (same `media/downloads` mount).
+- **Lidarr** was wired via API at deploy: root folder `/music` (quality profile
+  "Any", metadata "Standard"), qBittorrent + SABnzbd download clients (category
+  `music`, creds mirrored from sonarr's DB), and registered as an application in
+  Prowlarr (full sync - indexers propagate automatically).
+- **Navidrome** admin login is `NAVIDROME_ADMIN_USER`/`NAVIDROME_ADMIN_PASS` in
+  `jellystack.env` (stored in Navidrome's own DB; recorded in the env file so it
+  isn't lost). Library scans hourly (`ND_SCANSCHEDULE=1h`).
+
+Backups: all four apps keep state under `appdata/` (covered by the daily
+`sdc-backup.sh`); the music files themselves are on the T7 and are also in the
+backup set (unlike movies/tv). `media/downloads/slskd` is scratch and excluded.
 
 ## Still open
 
