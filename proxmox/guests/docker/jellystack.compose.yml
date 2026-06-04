@@ -54,6 +54,33 @@ services:
           - jellyseerr
     restart: unless-stopped
 
+  # Subnet router — advertises the LAN (192.168.1.0/24) to the tailnet so
+  # remote devices reach AdGuard DNS and Caddy (every *.home URL) without
+  # per-service sidecars. Two console-side steps (see jellystack.md):
+  # approve the route, and add split DNS home -> 192.168.1.20.
+  ts-subnet-router:
+    image: tailscale/tailscale:latest
+    container_name: ts-subnet-router
+    hostname: homelab-lan
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=homelab-lan
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_ROUTES=192.168.1.0/24
+      - TS_EXTRA_ARGS=--accept-dns=false
+    volumes:
+      - ./appdata/ts-subnet-router/state:/var/lib/tailscale
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    restart: unless-stopped
+
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
