@@ -19,7 +19,8 @@ TSDB + Grafana data live on the T7 via CT 102's `mp4` bind
 headroom. Retention: 90d / 40GB cap.
 
 URLs (LAN, via AdGuard `*.home` -> .30): http://grafana.home,
-http://prometheus.home (also :3000 / :9090 direct).
+http://prometheus.home (also :3000 / :9090 direct). Grafana login:
+`GF_SECURITY_ADMIN_USER`/`GF_SECURITY_ADMIN_PASSWORD` in `monitoring.env`.
 
 ## Deploy
 
@@ -65,6 +66,9 @@ Then check http://prometheus.home/targets - everything should be UP.
   3. HAOS is DHCP at 192.168.1.40 - give it a router reservation so the scrape
      target stays valid.
   4. Mosquitto login for prom2mqtt -> `MQTT_USER`/`MQTT_PASS` in `monitoring.env`.
+     The broker side is the `logins:` section of the Mosquitto **addon config**
+     (HA -> Settings -> Add-ons -> Mosquitto -> Configuration; user
+     `observability`), not an HA user account. Addon restart applies it.
      The bridge publishes MQTT-discovery sensors that appear as a "Homelab"
      device in HA (host CPU/temp/mem, root + local-lvm + T7 disk %, CT 102 mem,
      guests up, scrape targets up, Minecraft players).
