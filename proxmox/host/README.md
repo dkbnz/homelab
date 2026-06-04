@@ -57,3 +57,15 @@ curl -s 'localhost:9221/pve?target=localhost' | head
 Both listen on all interfaces; the LAN is trusted (no port forwarding to the
 internet exists). Keep them updated by hand - they are not covered by
 unattended-upgrades (static binary + venv).
+
+## fstrim (weekly, Sundays 04:30)
+
+`/etc/cron.d/fstrim-ct102` runs `pct fstrim 102` weekly. CT 102's mp0/mp2 are
+raw files on the root SSD; without trim, deleted blocks stay materialized in
+the files and the host root fills (it hit 100% once - trim reclaimed ~7G:
+mp0 7.8G -> 2.0G for 1.9G of data). The trim also returns rootfs blocks to the
+local-lvm thin pool.
+
+```
+30 4 * * 0 root /usr/sbin/pct fstrim 102 >/dev/null
+```
