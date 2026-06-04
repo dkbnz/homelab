@@ -40,3 +40,18 @@ http://grafana.home {
 http://prometheus.home {
     reverse_proxy 192.168.1.30:9090
 }
+# Other guests/hosts on the LAN. AdGuard's wildcard rewrite (*.home -> .30)
+# lands everything here; Caddy fans out by Host header.
+http://adguard.home {
+    reverse_proxy 192.168.1.20:80
+}
+http://proxmox.home {
+    reverse_proxy https://192.168.1.10:8006 {
+        transport http {
+            tls_insecure_skip_verify   # PVE self-signed cert
+        }
+    }
+}
+http://homeassistant.home {
+    reverse_proxy 192.168.1.40:8123   # HA trusts .30 as proxy (http: block)
+}

@@ -36,6 +36,9 @@ captured here.
   `configuration.yaml`. Prometheus on CT 102 scrapes `/api/prometheus` with a
   long-lived token; prom2mqtt pushes infra summary sensors back in via
   Mosquitto. See `proxmox/guests/docker/monitoring.md`.
+- `http-config.yaml` — `http:` block trusting Caddy on CT 102 as a reverse
+  proxy, so http://homeassistant.home works (without it HA 400s proxied
+  requests).
 
 To change one: edit the live `automations.yaml`, `ha core check`, `ha core restart`,
 then mirror the change back here.

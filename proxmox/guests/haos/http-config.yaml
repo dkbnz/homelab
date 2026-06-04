@@ -1,0 +1,9 @@
+# Block appended to /mnt/data/supervisor/homeassistant/configuration.yaml.
+# Lets HA accept proxied requests from Caddy on CT 102 (http://homeassistant.home).
+# Without trusted_proxies, HA returns 400 for requests carrying X-Forwarded-For.
+#
+# Apply: append to configuration.yaml, then `ha core check && ha core restart`.
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.1.30
