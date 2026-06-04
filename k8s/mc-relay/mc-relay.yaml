@@ -1,0 +1,109 @@
+# Minecraft public relay on the OCI k3s cluster.
+#
+# Replaces the dedicated mc-relay-mel VM (its 47 GB boot volume pushed total block
+# storage over the 200 GB always-free cap). One pod: a tailscale sidecar joins the
+# tailnet (hostname "mc-relay"), and two socat containers in the same pod netns
+# forward public traffic down the tailnet to the minecraft sidecar (100.66.124.27):
+#   TCP 25565 (Java) and UDP 19132 (Bedrock/Geyser), exposed via hostPort.
+#
+# Pinned to k3s-control (public IP 161.33.75.89) because DNS A records point at one
+# node. The relay NSG (TCP 25565 + UDP 19132 ingress) is attached to its VNIC.
+#
+# Secret "ts-authkey" is created out-of-band (kubectl, from minecraft.env) — never
+# committed here.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mc-relay
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ts-state
+  namespace: mc-relay
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mc-relay
+  namespace: mc-relay
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # hostPort + RWO state: never two pods at once
+  selector:
+    matchLabels:
+      app: mc-relay
+  template:
+    metadata:
+      labels:
+        app: mc-relay
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-control
+      containers:
+        - name: tailscale
+          image: tailscale/tailscale:latest
+          env:
+            - name: TS_HOSTNAME
+              value: "mc-relay"
+            - name: TS_STATE_DIR
+              value: "/var/lib/tailscale"
+            - name: TS_KUBE_SECRET   # disable kube-secret state (needs RBAC); PVC holds state
+              value: ""
+            - name: TS_USERSPACE
+              value: "false"
+            - name: TS_AUTH_ONCE          # reuse stored state; don't burn the authkey each restart
+              value: "true"
+            - name: TS_EXTRA_ARGS
+              value: "--accept-dns=false"
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: ts-authkey
+                  key: TS_AUTHKEY
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+          volumeMounts:
+            - name: ts-state
+              mountPath: /var/lib/tailscale
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+        - name: socat-tcp
+          image: alpine/socat:latest
+          args: ["-d", "TCP-LISTEN:25565,fork,reuseaddr", "TCP:100.66.124.27:25565"]
+          ports:
+            - containerPort: 25565
+              hostPort: 25565
+              protocol: TCP
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+        - name: socat-udp
+          image: alpine/socat:latest
+          args: ["-d", "UDP-LISTEN:19132,fork,reuseaddr", "UDP:100.66.124.27:19132"]
+          ports:
+            - containerPort: 19132
+              hostPort: 19132
+              protocol: UDP
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+      volumes:
+        - name: ts-state
+          persistentVolumeClaim:
+            claimName: ts-state
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
