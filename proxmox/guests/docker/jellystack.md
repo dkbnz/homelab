@@ -1,18 +1,18 @@
 # jellystack (CT 102)
 
 The media stack, migrated from a OnePlus phone (postmarketOS + rootless Podman) to
-the Docker LXC. Jellyfin and Jellyseerr (each fronted by a Tailscale sidecar),
-Sonarr, Radarr, Prowlarr, SABnzbd, gluetun (Surfshark WireGuard) + qBittorrent,
-FlareSolverr, Unpackerr, and the music pipeline: Lidarr, slskd (Soulseek, in
-gluetun's netns), Soularr, and Navidrome.
+the Docker LXC. Jellyfin, Jellyseerr, Sonarr, Radarr, Prowlarr, SABnzbd, gluetun
+(Surfshark WireGuard) + qBittorrent, FlareSolverr, Unpackerr, the music pipeline
+(Lidarr, slskd in gluetun's netns, Soularr, Navidrome), and a Tailscale subnet
+router for remote access.
 
 ## Files
 
 - `jellystack.compose.yml` — the compose file (deployed at `/opt/jellystack/compose.yaml`).
 - `jellystack.env` — secrets, **encrypted with transcrypt** (WireGuard key, Tailscale
   auth key, Sonarr/Radarr API keys). Deployed at `/opt/jellystack/.env`.
-- `jellystack/ts-jellyfin/serve.json`, `jellystack/ts-jellyseerr/serve.json` —
-  Tailscale serve config (HTTPS reverse proxy to the app port). Mounted read-only.
+- `jellystack/slskd/slskd.yml.tmpl`, `jellystack/soularr/config.ini.tmpl` —
+  config templates rendered into `appdata/` at deploy (API keys substituted).
 
 App config and databases (the `appdata/` tree) are **not** tracked here — too large
 and churny. They live on CT 102 at `/opt/jellystack/appdata` (the mp0 ext4 volume).
@@ -43,14 +43,12 @@ jellyfin container (`devices: /dev/dri`). Hardware accel is set to `qsv` in
 10-bit VP9 no — Kaby Lake can't). Measured ~10x realtime on a 1080p HEVC 10-bit
 to h264 transcode.
 
-Jellyfin and Jellyseerr have no host ports — they share their Tailscale sidecar's
-network namespace. Reach them over Tailscale (`https://jellyfin.<tailnet>`,
-`https://jellyseerr.<tailnet>`) or on the LAN via the Caddy proxy (below). The rest
-are on the LAN at `192.168.1.30`: Sonarr `:8989`, Radarr `:7878`, Prowlarr `:9696`,
-SABnzbd `:8081`, qBittorrent `:8080` (via gluetun), FlareSolverr `:8191`,
-Lidarr `:8686`, slskd `:5030` (via gluetun). Navidrome has a `ts-navidrome`
-sidecar like jellyfin/jellyseerr - no host port, reach it at
-`https://navidrome.<tailnet>` or `http://navidrome.home`.
+Jellyfin, Jellyseerr, and Navidrome have no host ports — reach them through the
+Caddy proxy (`http://jellyfin.home` etc.), which works on the LAN and remotely
+via the subnet router. The rest also have direct LAN ports at `192.168.1.30`:
+Sonarr `:8989`, Radarr `:7878`, Prowlarr `:9696`, SABnzbd `:8081`, qBittorrent
+`:8080` (via gluetun), FlareSolverr `:8191`, Lidarr `:8686`, slskd `:5030`
+(via gluetun).
 
 ## Local access (Caddy + AdGuard)
 
@@ -80,32 +78,28 @@ name routes to Caddy automatically. This only works for clients that use AdGuard
 
 Host-header validation notes: SABnzbd rejects unknown `Host` headers, so
 `sabnzbd.home` is added to its `host_whitelist` (in `appdata/sabnzbd/sabnzbd.ini`).
-qBittorrent accepted the proxied host as-is. Only Jellyfin and Jellyseerr are exposed
-over Tailscale (they're the only services with a `ts-*` sidecar); everything else is
-LAN-only via Caddy.
+qBittorrent accepted the proxied host as-is.
 
 ## Tailscale
 
 This stack uses **Tailscale SaaS** (tailnet `shetland-gamma.ts.net`), not the repo's
-headscale server. The sidecar state was copied with the rest of `appdata`, so the
-`jellyfin` and `jellyseerr` nodes rejoined with their existing identities, no re-auth.
+headscale server.
 
-### Subnet router (remote *.home access)
-
-The `ts-subnet-router` service (node `homelab-lan`) advertises `192.168.1.0/24`
-to the tailnet. Combined with a **split DNS** entry in the admin console
-(domain `home` -> nameserver `192.168.1.20`), every `*.home` URL works from any
-tailnet device anywhere: AdGuard answers the lookup over the tailnet, the subnet
-route carries traffic to Caddy on `.30`. At home with Tailscale off nothing
-changes - DHCP DNS (AdGuard) and direct LAN routing serve the same URLs.
+The per-app `ts-*` sidecars (jellyfin, jellyseerr, navidrome) were torn down in
+favour of a single subnet router: the `ts-subnet-router` service (node
+`homelab-lan`) advertises `192.168.1.0/24` to the tailnet. Combined with a
+**split DNS** entry in the admin console (domain `home` -> nameserver
+`192.168.1.20`), every `*.home` URL works from any tailnet device anywhere:
+AdGuard answers the lookup over the tailnet, the subnet route carries traffic
+to Caddy on `.30`. At home with Tailscale off nothing changes - DHCP DNS
+(AdGuard) and direct LAN routing serve the same URLs. The trade-off vs the
+sidecars: plain HTTP (no per-service `https://*.ts.net` certs), and the whole
+LAN (Proxmox UI included) is reachable from any tailnet device - acceptable
+for a personal tailnet, tighten with ACLs if that changes.
 
 Console-side config (not in this repo): the approved route on `homelab-lan`,
 and the split DNS entry under DNS -> Nameservers. Both need redoing if the
 node is recreated without its state dir (`appdata/ts-subnet-router/state`).
-
-This also means any tailnet device can reach the whole LAN (Proxmox UI
-included), not just Caddy. Acceptable for a personal tailnet; tighten with
-Tailscale ACLs if that changes.
 
 ## Media + library reconciliation (done)
 
@@ -240,9 +234,8 @@ Component notes:
   Prowlarr (full sync - indexers propagate automatically).
 - **Navidrome** admin login is `NAVIDROME_ADMIN_USER`/`NAVIDROME_ADMIN_PASS` in
   `jellystack.env` (stored in Navidrome's own DB; recorded in the env file so it
-  isn't lost). Library scans hourly (`ND_SCANSCHEDULE=1h`). Fronted by the
-  `ts-navidrome` Tailscale sidecar (`jellystack/ts-navidrome/serve.json`), so
-  phone Subsonic clients stream remotely at `https://navidrome.<tailnet>`.
+  isn't lost). Library scans hourly (`ND_SCANSCHEDULE=1h`). Phone Subsonic
+  clients use `http://navidrome.home` (works remotely via the subnet router).
 
 Backups: all four apps keep state under `appdata/` (covered by the daily
 `sdc-backup.sh`); the music files themselves are on the T7 and are also in the
