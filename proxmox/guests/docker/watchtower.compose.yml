@@ -1,5 +1,7 @@
 # Watchtower - automatic container image updates on the Docker LXC (CT 102).
-# Updates daily at 04:00 Pacific/Auckland and removes old images.
+# Updates daily at 05:00 Pacific/Auckland and removes old images.
+# (05:00 keeps it clear of the 04:30 unattended-upgrades auto-reboot, which
+# interrupted a mid-update run on 2026-06-03 and left a torn container.)
 #
 # Uses the maintained fork (nicholas-fedor) - the original containrrr/watchtower
 # is abandoned and its Docker API client (v1.25) is rejected by modern dockerd
@@ -20,6 +22,6 @@ services:
     environment:
       - TZ=Pacific/Auckland
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_SCHEDULE=0 0 4 * * *
+      - WATCHTOWER_SCHEDULE=0 0 5 * * *
       - WATCHTOWER_INCLUDE_RESTARTING=true
       - WATCHTOWER_HTTP_API_METRICS=true   # /v1/metrics; scheduled updates keep running
