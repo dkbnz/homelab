@@ -90,6 +90,23 @@ This stack uses **Tailscale SaaS** (tailnet `shetland-gamma.ts.net`), not the re
 headscale server. The sidecar state was copied with the rest of `appdata`, so the
 `jellyfin` and `jellyseerr` nodes rejoined with their existing identities, no re-auth.
 
+### Subnet router (remote *.home access)
+
+The `ts-subnet-router` service (node `homelab-lan`) advertises `192.168.1.0/24`
+to the tailnet. Combined with a **split DNS** entry in the admin console
+(domain `home` -> nameserver `192.168.1.20`), every `*.home` URL works from any
+tailnet device anywhere: AdGuard answers the lookup over the tailnet, the subnet
+route carries traffic to Caddy on `.30`. At home with Tailscale off nothing
+changes - DHCP DNS (AdGuard) and direct LAN routing serve the same URLs.
+
+Console-side config (not in this repo): the approved route on `homelab-lan`,
+and the split DNS entry under DNS -> Nameservers. Both need redoing if the
+node is recreated without its state dir (`appdata/ts-subnet-router/state`).
+
+This also means any tailnet device can reach the whole LAN (Proxmox UI
+included), not just Caddy. Acceptable for a personal tailnet; tighten with
+Tailscale ACLs if that changes.
+
 ## Media + library reconciliation (done)
 
 The phone's library (~63GB) was copied over the LAN into `/mnt/t7/jellystack-media/`
