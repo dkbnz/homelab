@@ -70,6 +70,7 @@ hostname. The `caddy/Caddyfile` maps:
 | `http://lidarr.home`       | `lidarr:8686` |
 | `http://navidrome.home`    | `navidrome:4533` |
 | `http://slskd.home`        | `gluetun:5030` (slskd shares gluetun's netns) |
+| `http://soularr.home`      | `soularr:8265` (status/log web UI) |
 
 Name resolution is via an **AdGuard Home wildcard DNS rewrite** (`*.home` ->
 `192.168.1.30`, see `proxmox/guests/adguard/AdGuardHome.yaml`), so any new `.home`
