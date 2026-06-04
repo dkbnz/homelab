@@ -1,9 +1,10 @@
 # jellystack (CT 102)
 
 The media stack, migrated from a OnePlus phone (postmarketOS + rootless Podman) to
-the Docker LXC. Twelve containers: Jellyfin and Jellyseerr (each fronted by a
-Tailscale sidecar), Sonarr, Radarr, Prowlarr, SABnzbd, gluetun (Surfshark WireGuard)
-+ qBittorrent, FlareSolverr, and Unpackerr.
+the Docker LXC. Jellyfin and Jellyseerr (each fronted by a Tailscale sidecar),
+Sonarr, Radarr, Prowlarr, SABnzbd, gluetun (Surfshark WireGuard) + qBittorrent,
+FlareSolverr, Unpackerr, and the music pipeline: Lidarr, slskd (Soulseek, in
+gluetun's netns), Soularr, and Navidrome.
 
 ## Files
 
@@ -34,6 +35,13 @@ UUID via `/etc/fstab`), so ownership is stored on disk — no forced mount uid/g
 ```shell
 ssh homelab 'pct exec 102 -- docker compose -f /opt/jellystack/compose.yaml up -d'
 ```
+
+Jellyfin transcodes with QSV on the host iGPU (UHD 620). The render node is passed
+into CT 102 (`dev0: /dev/dri/renderD128,gid=106` in `102-docker.conf`) and into the
+jellyfin container (`devices: /dev/dri`). Hardware accel is set to `qsv` in
+`appdata/jellyfin/encoding.xml` (decode: h264/hevc/mpeg2/vc1/vp9, 10-bit HEVC yes,
+10-bit VP9 no — Kaby Lake can't). Measured ~10x realtime on a 1080p HEVC 10-bit
+to h264 transcode.
 
 Jellyfin and Jellyseerr have no host ports — they share their Tailscale sidecar's
 network namespace. Reach them over Tailscale (`https://jellyfin.<tailnet>`,

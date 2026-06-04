@@ -69,6 +69,8 @@ services:
       - ./media/tv:/data/tvshows
       - ./media/movies:/data/movies
       - ./media/music:/data/music
+    devices:
+      - /dev/dri:/dev/dri   # QSV transcoding (UHD 620, via CT 102 dev0 passthrough)
     restart: unless-stopped
 
   jellyseerr:
