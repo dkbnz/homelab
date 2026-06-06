@@ -9,7 +9,7 @@ the service list and `proxmox/host/README.md` for the bare-metal host exporters.
 | Where | What |
 |-------|------|
 | Proxmox host (.10) | node_exporter :9100, prometheus-pve-exporter :9221 (systemd, `proxmox/host/`) |
-| CT 102 `/opt/monitoring` | this stack: Prometheus :9090, Grafana :3000, cadvisor, node-exporter, exportarr x5 (sonarr/radarr/prowlarr/sabnzbd/lidarr), adguard-exporter, minecraft-exporter :9150 (host netns), prom2mqtt |
+| CT 102 `/opt/monitoring` | this stack: Prometheus :9090, Grafana :3000, cadvisor, node-exporter, exportarr x5 (sonarr/radarr/prowlarr/sabnzbd/lidarr), adguard-exporter, prom2mqtt |
 | jellystack | qbittorrent-exporter (gluetun netns, :8090), Jellyfin native /metrics, Caddy admin /metrics :2019, slskd native /metrics (gluetun netns, :5030), Navidrome native /metrics :4533 |
 | watchtower | metrics API :8085 (token in `watchtower.env`) |
 | HAOS VM (.40) | scraped at `/api/prometheus` (long-lived token); Mosquitto receives prom2mqtt sensors |
@@ -78,13 +78,13 @@ Then check http://prometheus.home/targets - everything should be UP.
      `observability`), not an HA user account. Addon restart applies it.
      The bridge publishes MQTT-discovery sensors that appear as a "Homelab"
      device in HA (host CPU/temp/mem, root + local-lvm + T7 disk %, CT 102 mem,
-     guests up, scrape targets up, Minecraft players).
+     guests up, scrape targets up).
 
 ## Dashboards
 
 File-provisioned from `grafana/dashboards/` (pinned JSONs, committed).
-`fetch.sh` re-downloads the community ones; `minecraft.json` and
-`homelab-overview.json` are authored in-repo. The provisioning folder is
+`fetch.sh` re-downloads the community ones;
+`homelab-overview.json` is authored in-repo. The provisioning folder is
 "Homelab"; UI edits to provisioned dashboards don't persist across restarts
 unless exported back into the repo.
 

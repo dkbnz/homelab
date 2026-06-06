@@ -11,13 +11,14 @@ documented and repeatable.
 - **CPU**: Intel Core i7-8650U (8 threads)
 - **RAM**: 16 GB
 - **Storage**:
-  - `sda` 64 GB SanDisk SSD - boot, `local` (dir, on `pve-root`) and `local-lvm` (thin pool)
-  - `sdb` 931 GB Samsung T7 (ext4) - data disk, mounted by UUID at host `/mnt/t7`,
-    bind-mounted into CT 102 (mp1 media, mp3 minecraft). Converted from exFAT to ext4
-    so the *arr apps get real ownership + hardlinks.
-  - `sdc` 465 GB USB HDD (ext4) - mounted `/mnt/sdc`; holds the daily backup of the
-    irreplaceable data (`scripts/sdc-backup.sh`: appdata + minecraft + PS4 data, not
+  - 64 GB SanDisk SSD - boot, `local` (dir, on `pve-root`) and `local-lvm` (thin pool)
+  - 931 GB Samsung T7 (ext4) - data disk, mounted by UUID at host `/mnt/t7`,
+    bind-mounted into CT 102 (mp1 media, mp4 monitoring). Converted from exFAT to
+    ext4 so the *arr apps get real ownership + hardlinks.
+  - 465 GB USB HDD (ext4) - mounted by UUID at `/mnt/sdc`; holds the daily backup of
+    the irreplaceable data (`scripts/sdc-backup.sh`: appdata + music + PS4 data, not
     the redownloadable media)
+  - The two USB disks' `sdX` names drift between boots; both mount by UUID.
 - The `local-lvm` thin pool was extended to fill the volume group after it hit 100%
   (a runaway Docker pull); keep an eye on `pvesm status` before allocating disks.
 - **Network**: single bridge `vmbr0` on `eno0`. Onboard WiFi is disabled.
@@ -87,8 +88,7 @@ you to diff rather than overwriting them.
    - VM 100: HAOS VM script, then `qm set 100` for USB passthrough (`usb0` Zigbee, `usb1` Intel BT).
    - CT 101: AdGuard script, then drop `guests/adguard/AdGuardHome.yaml` into `/opt/AdGuardHome/`.
    - CT 102: Docker script, then add storage and tun passthrough per `guests/102-docker.conf`
-     (mount the ext4 T7 at `/mnt/t7`, add mp0/mp1/mp2/mp3, the two `lxc.*` tun lines).
-     Deploy watchtower (`guests/docker/watchtower.compose.yml`), the jellystack
-     (see `guests/docker/jellystack.md`), and the minecraft server
-     (see `guests/docker/minecraft.md`).
+     (mount the ext4 T7 at `/mnt/t7`, add mp0/mp1/mp2/mp4, the two `lxc.*` tun lines).
+     Deploy watchtower (`guests/docker/watchtower.compose.yml`) and the jellystack
+     (see `guests/docker/jellystack.md`).
 3. Deploy additional service stacks onto CT 102 as needed (see the repo root `services/`).

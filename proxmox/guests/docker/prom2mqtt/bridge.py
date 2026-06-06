@@ -82,12 +82,6 @@ SENSORS = {
     ),
     "targets_up": ("Scrape targets up", None, None, "count(up == 1)"),
     "targets_total": ("Scrape targets total", None, None, "count(up)"),
-    "minecraft_players": (
-        "Minecraft players online",
-        None,
-        None,
-        "sum(minecraft_player_online) or vector(0)",
-    ),
 }
 
 

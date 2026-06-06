@@ -90,11 +90,6 @@ scrape_configs:
     static_configs:
       - targets: ["caddy:2019"]
 
-  # Paper server via rcon; exporter is in the CT 102 host netns.
-  - job_name: minecraft
-    static_configs:
-      - targets: ["192.168.1.30:9150"]
-
   # AdGuard Home on CT 101 via its exporter.
   - job_name: adguard
     static_configs:
