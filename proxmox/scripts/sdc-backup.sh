@@ -5,16 +5,16 @@
 # (movies/tv/downloads, ~218GB) per the backup policy. What it captures:
 #   - CT102 /opt/jellystack/appdata : *arr configs + SQLite DBs + Jellyfin metadata
 #                                     + Tailscale sidecar state (the crown jewels)
-#   - T7 /mnt/t7 minus the raw video : minecraft world, music, PS4 game data
-#                                       (CUSA00473), itemzflow
+#   - T7 /mnt/t7 minus the raw video : music, PS4 game data (CUSA00473),
+#                                       itemzflow, monitoring data
 #
 # Mirror (not snapshots): each run overwrites the previous backup with --delete.
 # Runs from /etc/cron.d/sdc-backup (see install note at the bottom).
 #
-# Consistency note: this copies live SQLite DBs (*.db + -wal/-shm) and the live
-# minecraft world without stopping anything. SQLite replays the WAL on open, so a
-# restored DB is normally consistent; this is a best-effort point-in-time backup,
-# not a quiesced one. Stop the stack first if you need a guaranteed-clean copy.
+# Consistency note: this copies live SQLite DBs (*.db + -wal/-shm) without
+# stopping anything. SQLite replays the WAL on open, so a restored DB is normally
+# consistent; this is a best-effort point-in-time backup, not a quiesced one.
+# Stop the stack first if you need a guaranteed-clean copy.
 set -euo pipefail
 
 DEST=/mnt/sdc/backup
@@ -47,10 +47,10 @@ mv "$TMP/appdata" "$DEST/ct102-appdata"
 rmdir "$TMP" 2>/dev/null || true
 
 # 2) T7 data, excluding the redownloadable raw video media and the downloads scratch.
-#    Keeps minecraft, music, CUSA00473 (PS4), itemzflow.
+#    Keeps music, CUSA00473 (PS4), itemzflow, monitoring.
 echo "-- t7 --"
-# rsync exit 24 = "source files vanished before transfer" - benign here, the live
-# minecraft server churns temp files (spark .jfr.tmp etc) while we copy. Tolerate it.
+# rsync exit 24 = "source files vanished before transfer" - benign here, live
+# services churn temp files while we copy. Tolerate it.
 rsync -a --delete \
     --exclude='/jellystack-media/movies' \
     --exclude='/jellystack-media/tv' \

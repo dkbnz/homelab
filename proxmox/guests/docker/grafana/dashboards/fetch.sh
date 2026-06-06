@@ -22,8 +22,7 @@ grafana_com 13330 2  adguard.json                   # AdGuard exporter (ebrianne
 # project-shipped dashboards (pinned to a commit where possible)
 curl -fsSL https://raw.githubusercontent.com/onedr0p/exportarr/master/examples/grafana/dashboard.json -o exportarr.json
 curl -fsSL https://raw.githubusercontent.com/esanchezm/prometheus-qbittorrent-exporter/master/grafana/dashboard.json -o qbittorrent.json
-# minecraft.json + homelab-overview.json are authored in-repo (dirien's exporter
-# ships no dashboard); fetch.sh must not clobber them.
+# homelab-overview.json is authored in-repo; fetch.sh must not clobber it.
 
 # normalise the templated datasource to the provisioned uid
 for f in node-exporter-full.json proxmox-pve.json cadvisor.json adguard.json exportarr.json qbittorrent.json; do

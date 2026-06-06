@@ -22,11 +22,12 @@ on `eno0`. Onboard WiFi disabled.
 | 101 | LXC  | adguard  | `192.168.1.20`   | AdGuard Home DNS / ad blocking           |
 | 102 | LXC  | docker   | `192.168.1.30`   | Docker host (watchtower + service stacks)|
 
-Hardware: Intel i7-8650U, 16 GB RAM. `sda` 64 GB SanDisk SSD (boot, `local`,
-`local-lvm`); `sdb` 931 GB Samsung T7 (**ext4**, data; bound into CT 102 as mp1
-`jellystack-media` + mp3 `minecraft`); `sdc` 465 GB USB HDD (ext4,
-mounted `/mnt/sdc`; holds the daily `sdc-backup.sh` backup of appdata + minecraft +
-PS4 data - see Common workflows).
+Hardware: Intel i7-8650U, 16 GB RAM. 64 GB SanDisk SSD (boot, `local`,
+`local-lvm`); 931 GB Samsung T7 (**ext4**, mounted `/mnt/t7`; bound into CT 102 as
+mp1 `jellystack-media` + mp4 `monitoring`); 465 GB USB HDD (ext4, mounted
+`/mnt/sdc`; holds the daily `sdc-backup.sh` backup of appdata + PS4 data - see
+Common workflows). Both USB disks mount by UUID; their `sdX` names drift between
+boots, so don't address them by device name.
 
 All guests were created with the [community Proxmox helper scripts](https://community-scripts.github.io/ProxmoxVE/).
 
@@ -73,10 +74,11 @@ Makefile                 tf-* and ansible-up targets (run tools via docker compo
 
 What is actually running right now: HAOS VM, AdGuard, and on the Docker LXC the
 **jellystack** media stack (video + the music pipeline: Lidarr, slskd, Soularr,
-Navidrome — see `proxmox/guests/docker/jellystack.md`), a **minecraft**
-Paper server with its Tailscale sidecar + Discord bot (see
-`proxmox/guests/docker/minecraft.md`), `watchtower`, and the **monitoring** stack
+Navidrome — see `proxmox/guests/docker/jellystack.md`), `watchtower`, and the
+**monitoring** stack
 (Prometheus + Grafana + exporters, `proxmox/guests/docker/monitoring.md`). The
+minecraft server moved off the lab to an external host (2026-06-06); nothing
+minecraft-related runs here anymore. The
 Proxmox host itself runs bare-metal node_exporter + pve-exporter (`proxmox/host/`).
 The `services/` stacks are defined but **not deployed**. The root `docker-compose-service.yml` is a superseded
 earlier *arr stack, kept for reference only — jellystack
@@ -139,7 +141,7 @@ ssh homelab 'pct exec 102 -- docker compose -f <file> up -d'
 ### Backups to sdc
 `proxmox/scripts/sdc-backup.sh` runs daily at 03:30 (via `/etc/cron.d/sdc-backup`)
 and mirrors the irreplaceable data to `/mnt/sdc/backup`: CT102 `appdata` (*arr DBs +
-Jellyfin metadata + Tailscale state) and the T7's minecraft world, music, and PS4
+Jellyfin metadata + Tailscale state) and the T7's music, monitoring, and PS4
 data. It deliberately skips the raw video media (`movies`/`tv`/`downloads`, ~218GB)
 since that is redownloadable. Run on demand and check the log:
 ```shell
@@ -182,10 +184,11 @@ through terraform/GCP, not by inspecting the lab.
   creating disks, restoring backups, or pulling large images.
 - Don't expose services to the internet. Remote access is via the headscale/tailscale
   VPN by design — no port forwarding.
-- The Samsung T7 (`sdb`, now ext4) is the data disk for CT 102 (media + minecraft
-  world). Don't reformat or repartition it without an explicit, confirmed request.
-  `sdc` holds the daily backup of the irreplaceable data (appdata DBs, minecraft
-  world, PS4 saves); the raw media is deliberately not backed up (redownloadable).
+- The Samsung T7 (ext4, `/mnt/t7`) is the data disk for CT 102 (media + monitoring
+  data). Don't reformat or repartition it without an explicit, confirmed request.
+  The USB HDD at `/mnt/sdc` holds the daily backup of the irreplaceable data
+  (appdata DBs, music, PS4 saves); the raw media is deliberately not backed up
+  (redownloadable).
 - Snapshot/back up a guest before risky changes: `ssh homelab 'vzdump <vmid>'`.
 
 ## Quick reference

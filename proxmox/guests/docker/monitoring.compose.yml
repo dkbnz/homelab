@@ -6,9 +6,8 @@
 #   - CT 102 container metrics from cadvisor, CT 102 OS metrics from node-exporter.
 #   - App metrics from exportarr (sonarr/radarr/prowlarr/sabnzbd), the qbittorrent
 #     exporter (lives in jellystack.compose.yml, pinned to gluetun's netns),
-#     Jellyfin's native /metrics, Caddy's admin /metrics, the minecraft exporter
-#     (host netns, rcon on the LXC loopback - same pattern as mc-discord-bot),
-#     the AdGuard exporter (CT 101 API), and watchtower's metrics API.
+#     Jellyfin's native /metrics, Caddy's admin /metrics, the AdGuard exporter
+#     (CT 101 API), and watchtower's metrics API.
 #   - Home Assistant is scraped at /api/prometheus (long-lived token).
 #   - prom2mqtt pushes a few summary sensors back into HA via Mosquitto (MQTT
 #     discovery), so HA dashboards/automations can react to infra health.
@@ -154,22 +153,6 @@ services:
       - adguard_password=${ADGUARD_PASS}
       - server_port=9617
       - interval=30s
-    restart: unless-stopped
-
-  # Paper server stats over rcon. Host netns so it can reach rcon published on
-  # the LXC loopback (127.0.0.1:25575) - same pattern as mc-discord-bot.
-  # Listens on :9150 (Prometheus scrapes 192.168.1.30:9150).
-  minecraft-exporter:
-    image: ghcr.io/dirien/minecraft-exporter:latest
-    container_name: minecraft-exporter
-    network_mode: host
-    command:
-      - --mc.rcon-address=127.0.0.1:25575
-      - --mc.rcon-password=${RCON_PASSWORD}
-      - --mc.world=/world
-      - --web.listen-address=:9150
-    volumes:
-      - /opt/minecraft/data/world:/world:ro
     restart: unless-stopped
 
   # Queries Prometheus and republishes a few summary sensors to HA's Mosquitto
