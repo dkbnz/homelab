@@ -82,8 +82,8 @@ qBittorrent accepted the proxied host as-is.
 
 ## Tailscale
 
-This stack uses **Tailscale SaaS** (tailnet `shetland-gamma.ts.net`), not the repo's
-headscale server.
+This stack uses **Tailscale SaaS** (tailnet `shetland-gamma.ts.net`). The old
+self-hosted headscale control server was decommissioned (2026-06-06).
 
 The per-app `ts-*` sidecars (jellyfin, jellyseerr, navidrome) were torn down in
 favour of a single subnet router: the `ts-subnet-router` service (node
