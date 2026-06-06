@@ -61,8 +61,7 @@ proxmox/                 Current Proxmox state (source of truth)
   host/                  Bare-metal host services (node_exporter, pve-exporter;
                          pve.yml ENCRYPTED via transcrypt)
   scripts/snapshot.sh    Pull live guest/app config back into the repo
-terraform/               GCP headscale control server (separate concern; state encrypted)
-  headscale/             Headscale module + cloud-init templates
+terraform/               Backblaze B2 backup bucket + key (state encrypted)
 ansible/                 Optional: install Docker + deploy stacks onto a host
 services/                Deployable docker compose stacks (not all currently running)
   stacks/                base (traefik), autopirate, nextcloud, freshrss, bitwarden, jupyter, backup
@@ -151,15 +150,17 @@ To restore appdata: stop the stack, replace `/opt/jellystack/appdata` from
 `/mnt/sdc/backup/ct102-appdata`, fix ownership (`chown -R 10000:10000`, TS state dirs
 `0:0`), bring the stack back up.
 
-### Headscale (GCP) via terraform
-Run through the 3musketeers Make targets (terraform runs in a container, no local
-install needed):
+### Terraform (Backblaze B2)
+Terraform manages only the B2 backup bucket + application key. Run through the
+3musketeers Make targets (terraform runs in a container, no local install
+needed; the pinned `hashicorp/template` provider has no Apple Silicon build):
 ```shell
 make tf-plan
 make tf-apply
 ```
-This infra lives in GCP and is **not visible from the Proxmox host** — verify it
-through terraform/GCP, not by inspecting the lab.
+The old GCP headscale control server was decommissioned (2026-06-06); remote
+access is Tailscale SaaS (tailnet `shetland-gamma.ts.net`, subnet router on
+CT 102 — see `proxmox/guests/docker/jellystack.md`).
 
 ## Conventions
 
@@ -182,8 +183,8 @@ through terraform/GCP, not by inspecting the lab.
   `pct destroy`, `pvesm`, disk/LVM ops, `pct set` that detaches storage) before running.
 - `local-lvm` runs hot (was ~95% full). Check `ssh homelab 'pvesm status'` before
   creating disks, restoring backups, or pulling large images.
-- Don't expose services to the internet. Remote access is via the headscale/tailscale
-  VPN by design — no port forwarding.
+- Don't expose services to the internet. Remote access is via the Tailscale VPN
+  by design — no port forwarding.
 - The Samsung T7 (ext4, `/mnt/t7`) is the data disk for CT 102 (media + monitoring
   data). Don't reformat or repartition it without an explicit, confirmed request.
   The USB HDD at `/mnt/sdc` holds the daily backup of the irreplaceable data
