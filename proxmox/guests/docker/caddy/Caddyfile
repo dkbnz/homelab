@@ -44,6 +44,14 @@ http://slskd.home {
 http://soularr.home {
     reverse_proxy soularr:8265   # status/log web UI
 }
+# books stack (separate compose project) - reached via its host-published
+# ports rather than container names.
+http://cwa.home {
+    reverse_proxy 192.168.1.30:8083   # Calibre-Web-Automated (library + OPDS at /opds)
+}
+http://books.home {
+    reverse_proxy 192.168.1.30:8084   # Shelfmark (search + request UI)
+}
 # Monitoring stack (separate compose project) - reached via its host-published
 # ports rather than container names.
 http://grafana.home {
