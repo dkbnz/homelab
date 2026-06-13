@@ -116,6 +116,45 @@ First run:
 3. Open `http://192.168.1.30:8084` (Shelfmark) and run a test search to confirm
    it can reach Anna's Archive; download one book and watch it appear in CWA.
 
+## Anna's Archive domain rotation (will recur)
+
+Shelfmark's "Direct Download" tab queries Anna's Archive. AA loses domains to
+takedowns and registers new ones every few months, so this breaks on a schedule.
+Symptom: in a book's release modal the **Direct Download** tab is missing entirely
+(only **Prowlarr** shows), or it returns "No results table found". Prowlarr
+(torrent/usenet) keeps working because it's independent.
+
+Two things have to be true and both broke on 2026-06-13:
+
+1. **A live AA domain.** `.org`/`.se`/`.li` all died (Jan–Mar 2026). Shelfmark's
+   `AA_BASE_URL: "auto"` was stuck on a dead domain. The current working ones are
+   `annas-archive.gl` / `.pk` / `.gd` (check the project's Wikipedia infobox for
+   the live list — they keep that current). It's pinned to `.gl` in
+   `shelfmark/config/plugins/mirrors.json` (`AA_BASE_URL`).
+2. **The LAN can resolve it.** AdGuard's upstream is Cloudflare's *filtering*
+   resolver `1.1.1.2` (malware + adult). That returns `0.0.0.0` for some AA
+   domains (it nuked `.li`). The current `.gl`/`.pk`/`.gd` resolve fine through it.
+   If a future AA domain is `0.0.0.0` via AdGuard but real via `1.1.1.1`, add an
+   AdGuard DNS rewrite for it (or accept it's blocked and pick another mirror).
+
+Fix when it breaks again — find a live domain that resolves through AdGuard AND
+serves real search results via flaresolverr, then pin it:
+
+```shell
+# 1) which candidate resolves through AdGuard (not 0.0.0.0) and serves results?
+ssh homelab 'pct exec 102 -- docker exec shelfmark sh -c "
+  curl -s --max-time 60 -X POST http://192.168.1.30:8191/v1 -H Content-Type:application/json \
+    -d \"{\\\"cmd\\\":\\\"request.get\\\",\\\"url\\\":\\\"https://annas-archive.gl/search?q=test\\\",\\\"maxTimeout\\\":50000}\" \
+  | python3 -c \"import sys,json;h=json.load(sys.stdin).get(\\\"solution\\\",{}).get(\\\"response\\\",\\\"\\\");print(\\\"md5_hits\\\",h.count(\\\"/md5/\\\"))\""'
+# >0 md5_hits = good. Then:
+ssh homelab 'pct exec 102 -- docker exec shelfmark python3 -c "import json;p=\"/config/plugins/mirrors.json\";d=json.load(open(p));d[\"AA_BASE_URL\"]=\"https://annas-archive.gl\";json.dump(d,open(p,\"w\"),indent=2)"'
+ssh homelab 'pct exec 102 -- docker restart shelfmark'
+```
+
+`mirrors.json` lives on the T7 bind, so the pin survives restarts and is in the
+nightly backup. The donator key (`AA_DONATOR_KEY` in `books.env`) is blank = free
+tier, which works but is slower; AA membership fast servers need a paid key.
+
 ## Kobo side (KOReader + OPDS)
 
 The Kobo already had KOReader (v2022.01), KFMon, and NickelMenu installed. The
