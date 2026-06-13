@@ -186,8 +186,10 @@ CT 102 — see `proxmox/guests/docker/jellystack.md`).
 - `ssh homelab` is **root on the hypervisor**. A bad command takes down everything.
   Read before you destroy. Confirm destructive Proxmox actions (`qm destroy`,
   `pct destroy`, `pvesm`, disk/LVM ops, `pct set` that detaches storage) before running.
-- `local-lvm` runs hot (was ~95% full). Check `ssh homelab 'pvesm status'` before
-  creating disks, restoring backups, or pulling large images.
+- Host storage runs hot. `local` (the 25G root fs, holds CT 102's mp0/mp2 raw
+  disks) hit 100% on 2026-06-13; a daily `pct fstrim 102` cron now reclaims
+  deleted blocks (see `proxmox/host/README.md`). Check `ssh homelab 'pvesm status'`
+  before creating disks, restoring backups, or pulling large images.
 - Don't expose services to the internet. Remote access is via the Tailscale VPN
   by design — no port forwarding.
 - The Samsung T7 (ext4, `/mnt/t7`) is the data disk for CT 102 (media + monitoring
