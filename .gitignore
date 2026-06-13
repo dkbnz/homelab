@@ -4,3 +4,4 @@ secret
 data
 config
 .claude/
+.playwright-mcp/

@@ -17,18 +17,18 @@ strip() {
 }
 
 echo "Snapshotting VM 100 (Home Assistant OS)..."
-ssh "$SSH_HOST" 'qm config 100' | grep -vE '^(smbios1|vmgenid|meta|description):' \
+ssh "$SSH_HOST" 'qm config 100' | grep -vE '^(smbios1|vmgenid|meta|description|tags):' \
   | sed -E 's/,hwaddr=[^,]*//; s/virtio=[0-9A-Fa-f:]+/virtio/' \
   > /tmp/haos.cfg
 echo "  -> review /tmp/haos.cfg against $GUESTS/100-haos.conf"
 
 echo "Snapshotting CT 101 (AdGuard)..."
-ssh "$SSH_HOST" 'pct config 101' | grep -vE '^(description):' \
+ssh "$SSH_HOST" 'pct config 101' | grep -vE '^(description|tags):' \
   | sed -E 's/,hwaddr=[^,]*//' > /tmp/adguard.cfg
 echo "  -> review /tmp/adguard.cfg against $GUESTS/101-adguard.conf"
 
 echo "Snapshotting CT 102 (Docker)..."
-ssh "$SSH_HOST" 'pct config 102' | grep -vE '^(description):' \
+ssh "$SSH_HOST" 'pct config 102' | grep -vE '^(description|tags):' \
   | sed -E 's/,hwaddr=[^,]*//' > /tmp/docker.cfg
 echo "  -> review /tmp/docker.cfg against $GUESTS/102-docker.conf"
 

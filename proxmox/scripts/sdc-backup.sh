@@ -6,7 +6,7 @@
 #   - CT102 /opt/jellystack/appdata : *arr configs + SQLite DBs + Jellyfin metadata
 #                                     + Tailscale sidecar state (the crown jewels)
 #   - T7 /mnt/t7 minus the raw video : music, PS4 game data (CUSA00473),
-#                                       itemzflow, monitoring data
+#                                       itemzflow, monitoring data, books
 #
 # Mirror (not snapshots): each run overwrites the previous backup with --delete.
 # Runs from /etc/cron.d/sdc-backup (see install note at the bottom).
@@ -16,6 +16,7 @@
 # consistent; this is a best-effort point-in-time backup, not a quiesced one.
 # Stop the stack first if you need a guaranteed-clean copy.
 set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin  # cron omits /usr/sbin, where pct lives
 
 DEST=/mnt/sdc/backup
 LOG=/var/log/sdc-backup.log
