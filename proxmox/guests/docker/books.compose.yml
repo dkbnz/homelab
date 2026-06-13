@@ -1,0 +1,63 @@
+services:
+  # =========================================================
+  # Calibre-Web-Automated (CWA) — ebook library + OPDS + auto-ingest.
+  # Watches /cwa-book-ingest, converts to EPUB/KEPUB, enriches metadata,
+  # dedupes, and files into /calibre-library. Serves an OPDS catalogue at
+  # /opds that KOReader on the Kobo browses over the LAN.
+  #   Web UI / OPDS: http://192.168.1.30:8083  (OPDS: /opds)
+  #   First-run login: admin / admin123  (change it immediately)
+  # =========================================================
+  cwa:
+    image: crocodilestick/calibre-web-automated:latest
+    container_name: cwa
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./data/cwa/config:/config
+      - ./data/cwa/library:/calibre-library
+      - ./data/ingest:/cwa-book-ingest
+    ports:
+      - 8083:8083
+    restart: unless-stopped
+
+  # =========================================================
+  # Shelfmark (calibre-web-automated-book-downloader), LITE image — search +
+  # request UI. Finds books (Anna's Archive backend) and drops the file into
+  # the shared ingest dir, which CWA then auto-imports. The "request a book"
+  # front door.
+  #   Web UI: http://192.168.1.30:8084
+  # The full image bundles a Chromium for Cloudflare bypass (~350MB extracted)
+  # and didn't fit on the 12G docker disk. The lite image has no browser and
+  # instead uses an EXTERNAL flaresolverr — we reuse the one already running in
+  # jellystack, reached on the host LAN IP (separate compose network, so the
+  # `flaresolverr` container name isn't resolvable here).
+  # INGEST_DIR (/books here) is the SAME host dir CWA watches as
+  # /cwa-book-ingest, so a download becomes a library entry with no extra step.
+  # =========================================================
+  shelfmark:
+    image: ghcr.io/calibrain/shelfmark-lite:latest
+    container_name: shelfmark
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - INGEST_DIR=/books
+      - USE_BOOK_TITLE=true
+      - AA_DONATOR_KEY=${AA_DONATOR_KEY}
+      - EXT_BYPASSER_URL=http://192.168.1.30:8191   # jellystack flaresolverr
+      - EXT_BYPASSER_PATH=/v1
+      - EXT_BYPASSER_TIMEOUT=60000
+    volumes:
+      - ./data/shelfmark/config:/config
+      - ./data/ingest:/books
+      # Shared with jellystack's qBittorrent + SABnzbd. Both use container path
+      # /downloads (host /mnt/t7/jellystack-media/downloads), so Shelfmark must
+      # mount the SAME host dir at the SAME container path to read completed
+      # torrent/usenet downloads (Prowlarr release source). Without this,
+      # Shelfmark hangs on "Waiting for completed files".
+      - /opt/jellystack/media/downloads:/downloads
+    ports:
+      - 8084:8084
+    restart: unless-stopped

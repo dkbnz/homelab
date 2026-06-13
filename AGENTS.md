@@ -24,7 +24,7 @@ on `eno0`. Onboard WiFi disabled.
 
 Hardware: Intel i7-8650U, 16 GB RAM. 64 GB SanDisk SSD (boot, `local`,
 `local-lvm`); 931 GB Samsung T7 (**ext4**, mounted `/mnt/t7`; bound into CT 102 as
-mp1 `jellystack-media` + mp4 `monitoring`); 465 GB USB HDD (ext4, mounted
+mp1 `jellystack-media` + mp4 `monitoring` + mp5 `books`); 465 GB USB HDD (ext4, mounted
 `/mnt/sdc`; holds the daily `sdc-backup.sh` backup of appdata + PS4 data - see
 Common workflows). Both USB disks mount by UUID; their `sdX` names drift between
 boots, so don't address them by device name.
@@ -58,6 +58,9 @@ proxmox/                 Current Proxmox state (source of truth)
     docker/monitoring.compose.yml   Prometheus/Grafana/exporters (deployed on CT 102)
     docker/monitoring.env           monitoring secrets (ENCRYPTED via transcrypt)
     docker/monitoring.md            observability layout + deploy notes
+    docker/books.compose.yml        CWA + Shelfmark ebook pipeline (deployed on CT 102)
+    docker/books.env                books secrets (ENCRYPTED via transcrypt)
+    docker/books.md                 ebook pipeline + Kobo/KOReader OPDS notes
   host/                  Bare-metal host services (node_exporter, pve-exporter;
                          pve.yml ENCRYPTED via transcrypt)
   scripts/snapshot.sh    Pull live guest/app config back into the repo
@@ -75,7 +78,9 @@ What is actually running right now: HAOS VM, AdGuard, and on the Docker LXC the
 **jellystack** media stack (video + the music pipeline: Lidarr, slskd, Soularr,
 Navidrome — see `proxmox/guests/docker/jellystack.md`), `watchtower`, and the
 **monitoring** stack
-(Prometheus + Grafana + exporters, `proxmox/guests/docker/monitoring.md`). The
+(Prometheus + Grafana + exporters, `proxmox/guests/docker/monitoring.md`), and
+the **books** stack (CWA + Shelfmark ebook pipeline for a Kobo,
+`proxmox/guests/docker/books.md`). The
 minecraft server moved off the lab to an external host (2026-06-06); nothing
 minecraft-related runs here anymore. The
 Proxmox host itself runs bare-metal node_exporter + pve-exporter (`proxmox/host/`).
