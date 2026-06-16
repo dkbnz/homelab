@@ -61,9 +61,12 @@ proxmox/                 Current Proxmox state (source of truth)
     docker/books.compose.yml        CWA + Shelfmark ebook pipeline (deployed on CT 102)
     docker/books.env                books secrets (ENCRYPTED via transcrypt)
     docker/books.md                 ebook pipeline + Kobo/KOReader OPDS notes
+    docker/minecraft-creative.compose.yml  throwaway flat creative world (deployed on CT 102)
+    docker/minecraft-creative.md    creative prototyping world + daily-reset notes
   host/                  Bare-metal host services (node_exporter, pve-exporter;
                          pve.yml ENCRYPTED via transcrypt)
   scripts/snapshot.sh    Pull live guest/app config back into the repo
+  scripts/mc-creative-reset.sh  daily 09:00 NZ wipe of the creative world (keeps config)
 terraform/               Backblaze B2 backup bucket + key (state encrypted)
 ansible/                 Optional: install Docker + deploy stacks onto a host
 services/                Deployable docker compose stacks (not all currently running)
@@ -80,9 +83,12 @@ Navidrome — see `proxmox/guests/docker/jellystack.md`), `watchtower`, and the
 **monitoring** stack
 (Prometheus + Grafana + exporters, `proxmox/guests/docker/monitoring.md`), and
 the **books** stack (CWA + Shelfmark ebook pipeline for a Kobo,
-`proxmox/guests/docker/books.md`). The
-minecraft server moved off the lab to an external host (2026-06-06); nothing
-minecraft-related runs here anymore. The
+`proxmox/guests/docker/books.md`), and the **minecraft-creative** stack (a
+throwaway flat creative world for prototyping that wipes daily at 09:00 NZ,
+`proxmox/guests/docker/minecraft-creative.md`). The
+real survival minecraft server moved off the lab to an external host
+(2026-06-06) and is not managed from this repo; only the prototyping creative
+world above runs here. The
 Proxmox host itself runs bare-metal node_exporter + pve-exporter (`proxmox/host/`).
 The `services/` stacks are defined but **not deployed**. The root `docker-compose-service.yml` is a superseded
 earlier *arr stack, kept for reference only — jellystack
