@@ -71,3 +71,19 @@ local-lvm thin pool.
 ```
 30 4 * * * root /usr/sbin/pct fstrim 102 >/dev/null
 ```
+
+## Jellyfin cache prune (daily, 04:15)
+
+`/etc/cron.d/jellyfin-cache-prune` runs `proxmox/scripts/jellyfin-cache-prune.sh`
+(deployed to `/usr/local/bin/`) 15 min before the fstrim. Jellyfin's `/config`
+lives on the CT 102 appdata loop (`/dev/loop0`, ~7.8G), which is backed by the
+host root fs. Jellyfin refuses to start (5XX via caddy) when that loop has under
+2GiB free. On 2026-06-24 the host root hit 0 free, the loop starved, and Jellyfin
+crash-looped. The script deletes stale transcode segments (untouched >2h, so
+active streams survive) and logs older than 14 days; metadata and image cache are
+left alone. Running it at 04:15 means the freed blocks are reclaimed by the 04:30
+fstrim in the same window.
+
+```
+15 4 * * * root /usr/local/bin/jellyfin-cache-prune.sh >/dev/null 2>&1
+```
