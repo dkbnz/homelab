@@ -57,13 +57,19 @@ Two things to know:
   are slow this way. Fix: run them through **VirtualGL** with the EGL backend,
   `vglrun -d egl <app>`, which renders on the UHD 620 (`renderD128`). Verified:
   `vglrun -d egl glxinfo` reports "Mesa Intel(R) UHD Graphics 620", plain glxinfo
-  reports llvmpipe. The Minecraft launcher shortcut is already wrapped in
-  `vglrun -d egl`. VirtualGL installs into the container layer, which watchtower
+  reports llvmpipe. VirtualGL installs into the container layer, which watchtower
   wipes on update, so `/config/custom-cont-init.d/10-virtualgl.sh` (on the T7)
   reinstalls it on every boot; the dir is mounted to `/custom-cont-init.d`
   (source tracked at `selkies-desktop/custom-cont-init.d/10-virtualgl.sh`).
-  If the launcher's own window misrenders under vglrun, launch it normally and
-  set the profile's wrapper command to `vglrun -d egl` instead (game-only).
+- **Don't vglrun the Minecraft launcher itself.** It's an Electron app;
+  VirtualGL breaks its Chromium compositor, giving a blank-but-clickable window.
+  So the launcher shortcut runs plain. To accelerate the *game* (not the
+  launcher UI), point the installation's **Java executable** at the wrapper
+  `/config/vgl-java` (launcher → Installations → Edit → More Options → Java
+  executable). The wrapper execs Minecraft's bundled JRE under `vglrun -d egl`,
+  so only the game's JVM uses the iGPU. Tracked at `selkies-desktop/vgl-java`.
+  Run the game once with the default Java first so the bundled JRE downloads,
+  then switch the Java executable to the wrapper.
 
 ### Minecraft launcher won't start ("profile in use ... on another computer")
 
