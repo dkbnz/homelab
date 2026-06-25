@@ -28,6 +28,10 @@ services:
       - DRINODE=/dev/dri/renderD128  # GPU for rendering (EGL)
       - DRI_NODE=/dev/dri/renderD128 # GPU for encode (VAAPI); == DRINODE -> zero-copy
       - LIBVA_DRIVER_NAME=iHD         # correct VA driver for UHD 620 (Gen9)
+      - WLR_NO_HARDWARE_CURSORS=1     # labwc (wlroots) draws the pointer on a HW
+                                     # cursor plane the capture misses -> invisible
+                                     # cursor. Force a software cursor so it is in
+                                     # the captured frame.
     group_add:
       - "106"                        # render group: lets abc open renderD128
                                      # (VA-API stream encode + OpenGL game render).

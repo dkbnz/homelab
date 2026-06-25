@@ -74,6 +74,17 @@ Two things to know:
   stream *encode*. For hardware encode you'd need the GStreamer
   `selkies-egl-desktop` image (NVIDIA-first; Intel unofficial) or a real GPU host.
 
+### Cursor and clipboard (Wayland quirks)
+
+- **Invisible cursor:** labwc (wlroots) draws the pointer on a hardware cursor
+  plane the capture misses. `WLR_NO_HARDWARE_CURSORS=1` (in the compose) forces a
+  software cursor that lands in the captured frame. The client-side "Use CSS
+  cursors" toggle alone does not fix it.
+- **Clipboard not syncing:** the server side is fine (Selkies clipboard monitor
+  runs; `wl-copy`/`wl-paste` work). The browser Clipboard API needs a permission
+  grant and is blocked on the self-signed `:3011` cert. Use the sidebar Clipboard
+  box, grant clipboard permission, or serve a trusted cert for auto-sync.
+
 ### Minecraft launcher won't start ("profile in use ... on another computer")
 
 The Mojang launcher is Electron. On each container recreate the hostname
