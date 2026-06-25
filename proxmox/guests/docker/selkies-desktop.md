@@ -89,6 +89,16 @@ Two things to know:
   grant and is blocked on the self-signed `:3011` cert. Use the sidebar Clipboard
   box, grant clipboard permission, or serve a trusted cert for auto-sync.
 
+### Minecraft launcher asks to sign into Microsoft every launch
+
+The launcher (Electron) encrypts the MSA refresh token with the OS keyring via
+`safeStorage`. This desktop has no Secret Service/keyring, so the saved token
+can't be decrypted next launch and you re-login. `launcher_accounts.json` itself
+persists fine on the T7 — it's the keyring that's missing. Fix: launch with
+`--password-store=basic` (in the desktop shortcut's `Exec`), which makes Electron
+use a deterministic file-based store under `/config` (persists). Sign in once more
+after enabling it, then it sticks.
+
 ### Minecraft launcher won't start ("profile in use ... on another computer")
 
 The Mojang launcher is Electron. On each container recreate the hostname
