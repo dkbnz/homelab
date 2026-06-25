@@ -60,9 +60,19 @@ Two things to know:
   reports llvmpipe. The Minecraft launcher shortcut is already wrapped in
   `vglrun -d egl`. VirtualGL installs into the container layer, which watchtower
   wipes on update, so `/config/custom-cont-init.d/10-virtualgl.sh` (on the T7)
-  reinstalls it on every boot; the dir is mounted to `/custom-cont-init.d`.
+  reinstalls it on every boot; the dir is mounted to `/custom-cont-init.d`
+  (source tracked at `selkies-desktop/custom-cont-init.d/10-virtualgl.sh`).
   If the launcher's own window misrenders under vglrun, launch it normally and
   set the profile's wrapper command to `vglrun -d egl` instead (game-only).
+
+### Minecraft launcher won't start ("profile in use ... on another computer")
+
+The Mojang launcher is Electron. On each container recreate the hostname
+changes, so the single-instance lock it leaves in `/config` (on the T7) looks
+like it belongs to "another computer" and the launcher exits (code 21). The
+boot script above deletes the stale lock
+(`/config/.minecraft/webcache2/Singleton*`) on startup. To clear it by hand:
+`rm -f /config/.minecraft/webcache2/Singleton*`.
 - **The video stream is CPU-encoded.** This image runs Selkies in
   `websockets`/pixelflux mode, whose only encoders are `x264enc` and `jpeg`
   (both CPU). The GStreamer VA-API/NVENC hardware encoders aren't part of this
