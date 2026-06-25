@@ -45,10 +45,33 @@ to a dedicated raw disk on `local`.
 
 ## GPU
 
-Shares the Intel UHD 620 iGPU with Jellyfin. The render node is already passed
-into CT 102 (`dev0: /dev/dri/renderD128,gid=106`); the compose maps it into the
-container and sets `DRINODE=/dev/dri/renderD128` for hardware video encode.
-Heavy Jellyfin transcodes and the desktop can contend for the iGPU.
+Shares the Intel UHD 620 iGPU with Jellyfin. The render node is passed into CT
+102 (`dev0: /dev/dri/renderD128,gid=106`); the compose maps it in, adds the
+container user to the render group (`group_add: ["106"]` — without it `abc`
+can't open the node at all) and sets `LIBVA_DRIVER_NAME=iHD`.
+
+Two things to know:
+
+- **OpenGL is software (llvmpipe) by default.** The session runs on **Xvfb**, a
+  virtual software framebuffer, so GL apps render on the CPU. 3D apps (Minecraft)
+  are slow this way. Fix: run them through **VirtualGL** with the EGL backend,
+  `vglrun -d egl <app>`, which renders on the UHD 620 (`renderD128`). Verified:
+  `vglrun -d egl glxinfo` reports "Mesa Intel(R) UHD Graphics 620", plain glxinfo
+  reports llvmpipe. The Minecraft launcher shortcut is already wrapped in
+  `vglrun -d egl`. VirtualGL installs into the container layer, which watchtower
+  wipes on update, so `/config/custom-cont-init.d/10-virtualgl.sh` (on the T7)
+  reinstalls it on every boot; the dir is mounted to `/custom-cont-init.d`.
+  If the launcher's own window misrenders under vglrun, launch it normally and
+  set the profile's wrapper command to `vglrun -d egl` instead (game-only).
+- **The video stream is CPU-encoded.** This image runs Selkies in
+  `websockets`/pixelflux mode, whose only encoders are `x264enc` and `jpeg`
+  (both CPU). The GStreamer VA-API/NVENC hardware encoders aren't part of this
+  pipeline (the VAAPI init in the logs errors `-22` and is unused). So the iGPU
+  accelerates *rendering* via VirtualGL, but not stream *encode*.
+
+Net: a weak 2017 iGPU doing GL render plus a 4-core container doing CPU video
+encode (shared with the rest of the stack) makes this marginal for game
+streaming. Fine for a light desktop; for real game streaming use a GPU host.
 
 ## Deploy
 

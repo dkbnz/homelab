@@ -22,8 +22,17 @@ services:
       - TZ=${TZ}
       - TITLE=Homelab Desktop
       - DRINODE=/dev/dri/renderD128  # hardware video encode on the UHD 620 iGPU
+      - LIBVA_DRIVER_NAME=iHD         # correct VA driver for UHD 620 (Gen9)
+    group_add:
+      - "106"                        # render group: lets abc open renderD128
+                                     # (VA-API stream encode + OpenGL game render).
+                                     # Without it both fall back to CPU -> lag.
     volumes:
       - /opt/desktop/config:/config
+      # cont-init script (on the T7) reinstalls VirtualGL on each boot so it
+      # survives watchtower image updates. vglrun -d egl renders OpenGL on the
+      # UHD 620 (renderD128) instead of llvmpipe. See selkies-desktop.md.
+      - /opt/desktop/config/custom-cont-init.d:/custom-cont-init.d
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
     ports:
