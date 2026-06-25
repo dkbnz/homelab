@@ -31,7 +31,7 @@ See `/etc/network/interfaces` on the host for the bridge config.
 |-----|------|-----------|------------------|------------------------------------------|
 | 100 | VM   | haos12.4  | DHCP             | Home Assistant OS 12.4 (Zigbee + BT USB) |
 | 101 | LXC  | adguard   | `192.168.1.20`   | AdGuard Home DNS / ad blocking           |
-| 102 | LXC  | docker    | `192.168.1.30`   | Docker host (jellystack media stack + watchtower) |
+| 102 | LXC  | docker    | `192.168.1.30`   | Docker host (jellystack + monitoring + books + selkies desktop + watchtower) |
 
 All three were created with the [community Proxmox helper scripts](https://community-scripts.github.io/ProxmoxVE/).
 Guest configs are snapshotted in `guests/` (`*.conf`), application config sits

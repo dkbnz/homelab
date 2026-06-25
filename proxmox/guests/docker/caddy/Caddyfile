@@ -60,6 +60,10 @@ http://grafana.home {
 http://prometheus.home {
     reverse_proxy 192.168.1.30:9090
 }
+# selkies-desktop stack (separate compose project) - browser XFCE desktop.
+http://desktop.home {
+    reverse_proxy 192.168.1.30:3010
+}
 # Other guests/hosts on the LAN. AdGuard's wildcard rewrite (*.home -> .30)
 # lands everything here; Caddy fans out by Host header.
 http://adguard.home {

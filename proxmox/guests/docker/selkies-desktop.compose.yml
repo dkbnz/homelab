@@ -1,0 +1,33 @@
+# Selkies (linuxserver Webtop) browser desktop on CT 102.
+# XFCE streamed over WebRTC (the Selkies stack powers linuxserver's Webtop image).
+# Reached on the LAN at http://192.168.1.30:3010 and via http://desktop.home
+# (Caddy -> :3010; the *.home wildcard resolves through AdGuard).
+#
+# Deploy:
+#   docker compose -f selkies-desktop.compose.yml --env-file selkies-desktop.env up -d
+#
+# /config (the desktop home dir) lives on the T7 via CT 102 mp6
+# (/opt/desktop/config), not the constrained local fs. See selkies-desktop.md.
+services:
+  webtop:
+    image: lscr.io/linuxserver/webtop:debian-xfce
+    container_name: webtop
+    security_opt:
+      - seccomp:unconfined          # required by the Selkies/Chromium sandbox
+    env_file:
+      - selkies-desktop.env          # CUSTOM_USER / PASSWORD (encrypted via transcrypt)
+    environment:
+      - PUID=10000
+      - PGID=10000
+      - TZ=${TZ}
+      - TITLE=Homelab Desktop
+      - DRINODE=/dev/dri/renderD128  # hardware video encode on the UHD 620 iGPU
+    volumes:
+      - /opt/desktop/config:/config
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    ports:
+      - 3010:3000                    # http (host 3000 is taken by Grafana)
+      - 3011:3001                    # https (self-signed); optional
+    shm_size: "1gb"                 # browser stability
+    restart: unless-stopped

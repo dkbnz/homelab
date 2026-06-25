@@ -58,6 +58,24 @@ Both listen on all interfaces; the LAN is trusted (no port forwarding to the
 internet exists). Keep them updated by hand - they are not covered by
 unattended-upgrades (static binary + venv).
 
+## Root fs sizing (swap shrunk 2026-06-25)
+
+`local` (pve-root) was 24.9G and chronically near-full: it holds CT 102's two
+bind-mount raws (mp0 appdata 8G + mp2 docker 16G = ~24G), leaving almost no room
+for image pulls. The VG had 0 free extents, and the `local-lvm` thin pool can't
+be shrunk to donate space. Swap was 7.4G but effectively idle (16G RAM box, ~290M
+used), so it was shrunk to 2G and the freed extents grew pve-root to 30.3G
+(~5.4G more headroom, ~7.8G free after). `vm.swappiness` dropped 60 -> 10
+(`/etc/sysctl.d/99-swappiness.conf`). This was done to fit the selkies-desktop
+(Webtop) image. fstab references swap by device path (`/dev/pve/swap`), so the
+new swap UUID needs no fstab edit.
+
+```
+swapoff -a
+lvreduce -y -L 2G pve/swap && mkswap /dev/pve/swap && swapon /dev/pve/swap
+lvextend -l +100%FREE pve/root && resize2fs /dev/mapper/pve-root
+```
+
 ## fstrim (daily, 04:30)
 
 `/etc/cron.d/fstrim-ct102` runs `pct fstrim 102` daily. CT 102's mp0/mp2 are

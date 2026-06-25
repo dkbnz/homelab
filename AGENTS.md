@@ -63,6 +63,9 @@ proxmox/                 Current Proxmox state (source of truth)
     docker/books.md                 ebook pipeline + Kobo/KOReader OPDS notes
     docker/minecraft-creative.compose.yml  throwaway flat creative world (deployed on CT 102)
     docker/minecraft-creative.md    creative prototyping world + daily-reset notes
+    docker/selkies-desktop.compose.yml  Selkies/Webtop browser XFCE desktop (deployed on CT 102)
+    docker/selkies-desktop.env      selkies-desktop secrets (ENCRYPTED via transcrypt)
+    docker/selkies-desktop.md       browser desktop deploy + storage + access notes
   host/                  Bare-metal host services (node_exporter, pve-exporter;
                          pve.yml ENCRYPTED via transcrypt)
   scripts/snapshot.sh    Pull live guest/app config back into the repo
@@ -85,7 +88,9 @@ Navidrome — see `proxmox/guests/docker/jellystack.md`), `watchtower`, and the
 the **books** stack (CWA + Shelfmark ebook pipeline for a Kobo,
 `proxmox/guests/docker/books.md`), and the **minecraft-creative** stack (a
 throwaway flat creative world for prototyping that wipes daily at 09:00 NZ,
-`proxmox/guests/docker/minecraft-creative.md`). The
+`proxmox/guests/docker/minecraft-creative.md`), and the **selkies-desktop**
+stack (a browser-accessible XFCE desktop streamed over WebRTC,
+`proxmox/guests/docker/selkies-desktop.md`). The
 real survival minecraft server moved off the lab to an external host
 (2026-06-06) and is not managed from this repo; only the prototyping creative
 world above runs here. The
