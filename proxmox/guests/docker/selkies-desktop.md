@@ -89,24 +89,23 @@ Two things to know:
   grant and is blocked on the self-signed `:3011` cert. Use the sidebar Clipboard
   box, grant clipboard permission, or serve a trusted cert for auto-sync.
 
-### Minecraft launcher asks to sign into Microsoft every launch
+### Launcher: use Prism, not the official Mojang launcher
 
-The launcher (Electron) encrypts the MSA refresh token with the OS keyring via
-`safeStorage`. This desktop has no Secret Service/keyring, so the saved token
-can't be decrypted next launch and you re-login. `launcher_accounts.json` itself
-persists fine on the T7 — it's the keyring that's missing. Fix: launch with
-`--password-store=basic` (in the desktop shortcut's `Exec`), which makes Electron
-use a deterministic file-based store under `/config` (persists). Sign in once more
-after enabling it, then it sticks.
+Use **Prism Launcher** (`/config/prism`, AppImage extracted; desktop icon
+"Prism Launcher" via `/config/prism-launch.sh`). It stores its Microsoft login in
+its own config under `/config/.local/share/PrismLauncher` (on the T7), so login
+**persists with no keyring**. Data and the launcher itself live on `/config`, so
+they survive container recreates/updates with no reinstall-on-boot. The wrapper
+sets `QT_QPA_PLATFORM=xcb` to run via XWayland (the stable path).
 
-### Minecraft launcher won't start ("profile in use ... on another computer")
-
-The Mojang launcher is Electron. On each container recreate the hostname
-changes, so the single-instance lock it leaves in `/config` (on the T7) looks
-like it belongs to "another computer" and the launcher exits (code 21). The
-boot script deletes the stale lock (`/config/.minecraft/webcache2/Singleton*`)
-on startup. To clear it by hand:
-`rm -f /config/.minecraft/webcache2/Singleton*`.
+The **official Mojang launcher** (still present as a second icon) re-prompts for
+Microsoft login every launch here: it (Electron) stores the MSA token via the OS
+keyring (`safeStorage`), and this headless desktop has no working Secret Service.
+gnome-keyring auto-unlock in this container proved unreliable (dynamic D-Bus
+session bus, activation timeouts), and Electron's `--password-store=basic` didn't
+satisfy the launcher. Prism sidesteps all of that — prefer it. (The official
+launcher also leaves a stale Electron single-instance lock on recreate; the boot
+script clears `/config/.minecraft/webcache2/Singleton*` if you do use it.)
 
 Net: with Wayland mode the iGPU renders Minecraft fine; the remaining cost is CPU
 stream encode on a shared 4-core box plus the weak 2017 iGPU. Good for light play;
