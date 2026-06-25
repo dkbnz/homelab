@@ -121,8 +121,29 @@ ssh homelab 'pct exec 102 -- docker exec caddy caddy reload --config /etc/caddy/
 ## Tuning
 
 - **Password / user:** edit `selkies-desktop.env`, recreate the container.
-- **Resolution / scaling:** Selkies adjusts to the browser window; force a size
-  with the `MAX_RES`/`DISABLE_*` env vars from the linuxserver Webtop docs.
-- **RAM:** CT 102 starts at 8 GB shared across all stacks. XFCE Webtop adds
-  ~1–3 GB under use; bump with `pct set 102 -memory 12288` then snapshot if it
-  gets tight.
+- **RAM:** CT 102 is at 12 GB shared across all stacks. Bump with
+  `pct set 102 -memory <MB>` then snapshot if it gets tight.
+
+## Performance
+
+The bottleneck is **CPU H.264 encode** (no VA-API in this image's pixelflux mode;
+`intel_gpu_top` on the host shows the VCS video engine at 0% while RCS render is
+active). Overall CPU isn't saturated — it was single-thread x264 encoding a large
+frame. Levers applied / available:
+
+- **Render resolution = the biggest lever.** Encode cost scales with the server
+  resolution, which follows the browser window. For full-screen use without a huge
+  encode bill, turn on **Use CSS Scaling** (sidebar → Screen Settings) and set a
+  **manual resolution** (e.g. 1280x720 or 1600x900): the server renders/encodes
+  low and the client stretches to fill the monitor. ~4x less work at 720p vs 1440p.
+- **Striped/streaming encode:** `SELKIES_H264_STREAMING_MODE=true` (in the compose)
+  re-encodes only changed regions and parallelizes across cores, instead of
+  single-thread full-frame.
+- **Cores:** CT 102 bumped to 6 (host is 4c/8t) so encode threads + the app
+  coexist. `pct set 102 -cores N` applies live.
+- **Framerate / CRF:** drop framerate to 30 or raise CRF (sidebar Video Settings)
+  if encode still can't keep up.
+- Measure with `ssh homelab 'intel_gpu_top'` (render vs idle) and
+  `pct exec 102 -- docker exec webtop sh -c "ps -eo pcpu,comm --sort=-pcpu | head"`
+  (selkies = encode, java = game). Hardware encode would need the GStreamer
+  selkies-egl-desktop image or a GPU host.

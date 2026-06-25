@@ -28,6 +28,9 @@ services:
       - DRINODE=/dev/dri/renderD128  # GPU for rendering (EGL)
       - DRI_NODE=/dev/dri/renderD128 # GPU for encode (VAAPI); == DRINODE -> zero-copy
       - LIBVA_DRIVER_NAME=iHD         # correct VA driver for UHD 620 (Gen9)
+      - SELKIES_H264_STREAMING_MODE=true  # striped/streaming encode (only re-encode
+                                     # changed regions, parallel) instead of single-
+                                     # thread FullFrame - uses the spare cores.
     group_add:
       - "106"                        # render group: lets abc open renderD128
                                      # (VA-API stream encode + OpenGL game render).
