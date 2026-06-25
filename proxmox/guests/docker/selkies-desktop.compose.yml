@@ -21,7 +21,12 @@ services:
       - PGID=10000
       - TZ=${TZ}
       - TITLE=Homelab Desktop
-      - DRINODE=/dev/dri/renderD128  # hardware video encode on the UHD 620 iGPU
+      - PIXELFLUX_WAYLAND=true        # GPU-rendered Wayland session (Smithay+Labwc)
+                                     # instead of the default Xvfb (software llvmpipe).
+                                     # Needs AVX2 (i7-8650U has it). This is what makes
+                                     # OpenGL apps use the iGPU - no VirtualGL needed.
+      - DRINODE=/dev/dri/renderD128  # GPU for rendering (EGL)
+      - DRI_NODE=/dev/dri/renderD128 # GPU for encode (VAAPI); == DRINODE -> zero-copy
       - LIBVA_DRIVER_NAME=iHD         # correct VA driver for UHD 620 (Gen9)
     group_add:
       - "106"                        # render group: lets abc open renderD128

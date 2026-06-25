@@ -52,50 +52,40 @@ can't open the node at all) and sets `LIBVA_DRIVER_NAME=iHD`.
 
 Two things to know:
 
-- **OpenGL is software (llvmpipe) by default.** The session runs on **Xvfb**, a
-  virtual software framebuffer, so GL apps render on the CPU. 3D apps (Minecraft)
-  are slow this way. Fix: run them through **VirtualGL** with the EGL backend,
-  `vglrun -d egl <app>`, which renders on the UHD 620 (`renderD128`). Verified:
-  `vglrun -d egl glxinfo` reports "Mesa Intel(R) UHD Graphics 620", plain glxinfo
-  reports llvmpipe. VirtualGL installs into the container layer, which watchtower
-  wipes on update, so `/config/custom-cont-init.d/10-virtualgl.sh` (on the T7)
-  reinstalls it on every boot; the dir is mounted to `/custom-cont-init.d`
-  (source tracked at `selkies-desktop/custom-cont-init.d/10-virtualgl.sh`).
-- **Don't vglrun the Minecraft launcher itself.** It's an Electron app;
-  VirtualGL breaks its Chromium compositor, giving a blank-but-clickable window.
-  So the launcher shortcut runs plain. VirtualGL is applied to the *game's JVM*
-  only, two ways:
-  - **Automatic (in use):** the bundled JRE's `java` binary is replaced with a
-    wrapper that execs the real binary (`java.real`) under `vglrun -d egl`. Every
-    launch then renders on the iGPU with no launcher setting. The runtime lives
-    in `/config` (T7), so it persists. Caveat: if the launcher re-downloads/
-    verifies the Java runtime it may overwrite the wrapper; re-apply it then (or
-    use the manual method).
-  - **Manual fallback:** point the installation's **Java executable** at
-    `/config/vgl-java` (launcher → Installations → Edit → More Options).
-    Tracked at `selkies-desktop/vgl-java`.
+- **Hardware OpenGL needs Wayland mode.** The default session is Xvfb (software
+  llvmpipe). Setting `PIXELFLUX_WAYLAND=true` switches to a GPU-rendered Wayland
+  session (Smithay + Labwc) where GL apps use the iGPU; X apps (Minecraft) run
+  via XWayland and inherit it. Needs AVX2 (the i7-8650U has it). Verified:
+  `glxinfo` on the session reports "Mesa Intel(R) UHD Graphics 620", GL 4.6 — not
+  llvmpipe. No VirtualGL or per-app wrappers needed.
 
-  Confirm the game is on the GPU: the running JVM should have
-  `/dev/dri/renderD128` open (`ls -l /proc/<pid>/fd | grep renderD128`). If it
-  isn't, it's still on llvmpipe.
+  Gotcha: the compositor runs via `s6-setuidgid abc`, which rebuilds groups from
+  `/etc/group` and drops docker's `group_add 106`, so it gets EACCES on
+  `renderD128` and falls back to the Pixman software renderer (apps see llvmpipe
+  again). The boot script `custom-cont-init.d/10-gpu-fixups.sh` `chmod 666`s the
+  render node before the compositor starts to fix this. Confirm hardware GL with
+  `glxinfo | grep "OpenGL renderer"` (want UHD 620, not llvmpipe). If it shows
+  llvmpipe, check the compositor log:
+  `docker logs webtop | grep '\[Wayland\].*GPU'`.
+
+- **The video stream is still CPU-encoded.** This image's pixelflux mode only
+  offers `x264enc`/`jpeg` encoders (both CPU); `DRI_NODE` is set but there's no
+  VA-API encoder in this pipeline. So the iGPU accelerates *rendering* but not
+  stream *encode*. For hardware encode you'd need the GStreamer
+  `selkies-egl-desktop` image (NVIDIA-first; Intel unofficial) or a real GPU host.
 
 ### Minecraft launcher won't start ("profile in use ... on another computer")
 
 The Mojang launcher is Electron. On each container recreate the hostname
 changes, so the single-instance lock it leaves in `/config` (on the T7) looks
 like it belongs to "another computer" and the launcher exits (code 21). The
-boot script above deletes the stale lock
-(`/config/.minecraft/webcache2/Singleton*`) on startup. To clear it by hand:
+boot script deletes the stale lock (`/config/.minecraft/webcache2/Singleton*`)
+on startup. To clear it by hand:
 `rm -f /config/.minecraft/webcache2/Singleton*`.
-- **The video stream is CPU-encoded.** This image runs Selkies in
-  `websockets`/pixelflux mode, whose only encoders are `x264enc` and `jpeg`
-  (both CPU). The GStreamer VA-API/NVENC hardware encoders aren't part of this
-  pipeline (the VAAPI init in the logs errors `-22` and is unused). So the iGPU
-  accelerates *rendering* via VirtualGL, but not stream *encode*.
 
-Net: a weak 2017 iGPU doing GL render plus a 4-core container doing CPU video
-encode (shared with the rest of the stack) makes this marginal for game
-streaming. Fine for a light desktop; for real game streaming use a GPU host.
+Net: with Wayland mode the iGPU renders Minecraft fine; the remaining cost is CPU
+stream encode on a shared 4-core box plus the weak 2017 iGPU. Good for light play;
+for serious game streaming use a GPU host.
 
 ## Deploy
 

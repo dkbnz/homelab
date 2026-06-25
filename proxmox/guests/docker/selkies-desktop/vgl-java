@@ -1,9 +1,0 @@
-#!/bin/bash
-# Run Minecraft's bundled JRE under VirtualGL so the GAME renders on the UHD 620
-# iGPU instead of software llvmpipe. Set this file as the installation's
-# "Java executable" in the launcher (Installations -> Edit -> More Options).
-# Do NOT vglrun the launcher itself - VirtualGL blanks its Electron/Chromium UI.
-# Deployed to /config/vgl-java on CT 102 (the T7).
-JAVA=$(ls -t /config/.minecraft/runtime/*/linux*/*/bin/java 2>/dev/null | head -1)
-[ -z "$JAVA" ] && JAVA=$(command -v java)
-exec vglrun -d egl "$JAVA" "$@"
