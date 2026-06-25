@@ -63,13 +63,21 @@ Two things to know:
   (source tracked at `selkies-desktop/custom-cont-init.d/10-virtualgl.sh`).
 - **Don't vglrun the Minecraft launcher itself.** It's an Electron app;
   VirtualGL breaks its Chromium compositor, giving a blank-but-clickable window.
-  So the launcher shortcut runs plain. To accelerate the *game* (not the
-  launcher UI), point the installation's **Java executable** at the wrapper
-  `/config/vgl-java` (launcher → Installations → Edit → More Options → Java
-  executable). The wrapper execs Minecraft's bundled JRE under `vglrun -d egl`,
-  so only the game's JVM uses the iGPU. Tracked at `selkies-desktop/vgl-java`.
-  Run the game once with the default Java first so the bundled JRE downloads,
-  then switch the Java executable to the wrapper.
+  So the launcher shortcut runs plain. VirtualGL is applied to the *game's JVM*
+  only, two ways:
+  - **Automatic (in use):** the bundled JRE's `java` binary is replaced with a
+    wrapper that execs the real binary (`java.real`) under `vglrun -d egl`. Every
+    launch then renders on the iGPU with no launcher setting. The runtime lives
+    in `/config` (T7), so it persists. Caveat: if the launcher re-downloads/
+    verifies the Java runtime it may overwrite the wrapper; re-apply it then (or
+    use the manual method).
+  - **Manual fallback:** point the installation's **Java executable** at
+    `/config/vgl-java` (launcher → Installations → Edit → More Options).
+    Tracked at `selkies-desktop/vgl-java`.
+
+  Confirm the game is on the GPU: the running JVM should have
+  `/dev/dri/renderD128` open (`ls -l /proc/<pid>/fd | grep renderD128`). If it
+  isn't, it's still on llvmpipe.
 
 ### Minecraft launcher won't start ("profile in use ... on another computer")
 
