@@ -76,10 +76,14 @@ Two things to know:
 
 ### Cursor and clipboard (Wayland quirks)
 
-- **Invisible cursor:** labwc (wlroots) draws the pointer on a hardware cursor
-  plane the capture misses. `WLR_NO_HARDWARE_CURSORS=1` (in the compose) forces a
-  software cursor that lands in the captured frame. The client-side "Use CSS
-  cursors" toggle alone does not fix it.
+- **Invisible cursor (UNRESOLVED in Wayland mode).** In `PIXELFLUX_WAYLAND` mode
+  the pointer is invisible. Selkies forwards the cursor to the *client* (the
+  "Wayland cursor callback") rather than compositing it into the captured frame,
+  so `WLR_NO_HARDWARE_CURSORS=1` does nothing here (selkies' own compositor, not
+  labwc, owns the cursor) and the client-side "Use CSS cursors" toggle didn't fix
+  it either. The default Xvfb (X11) mode renders the cursor fine. This is a
+  Selkies Wayland-mode rough edge; tradeoff is hardware GL (Wayland) vs working
+  cursor/clipboard (X11). Not yet solved.
 - **Clipboard not syncing:** the server side is fine (Selkies clipboard monitor
   runs; `wl-copy`/`wl-paste` work). The browser Clipboard API needs a permission
   grant and is blocked on the self-signed `:3011` cert. Use the sidebar Clipboard
