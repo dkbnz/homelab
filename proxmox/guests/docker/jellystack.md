@@ -97,9 +97,40 @@ sidecars: plain HTTP (no per-service `https://*.ts.net` certs), and the whole
 LAN (Proxmox UI included) is reachable from any tailnet device - acceptable
 for a personal tailnet, tighten with ACLs if that changes.
 
-Console-side config (not in this repo): the approved route on `homelab-lan`,
+Console-side config (not in this repo): the approved routes on `homelab-lan`,
 and the split DNS entry under DNS -> Nameservers. Both need redoing if the
 node is recreated without its state dir (`appdata/ts-subnet-router/state`).
+
+### Overlapping-LAN remote access (4via6)
+
+The subnet route above breaks when the network you are physically on also uses
+`192.168.1.0/24` (common default, e.g. a friend's router). Your OS routes
+`192.168.1.x` out the local wire, ARP fails, and both the services and the
+AdGuard resolver at `.20` are unreachable - so DNS dies too. Symptom: `*.home`
+resolves (or not) but nothing loads; `ping 192.168.1.30` gives "No route to
+host".
+
+Fix is Tailscale [4via6](https://tailscale.com/kb/1201/4via6-subnets), which maps
+the v4 subnet into a collision-free IPv6 range. `ts-subnet-router` advertises
+site 1: `TS_ROUTES` includes `fd7a:115c:a1e0:b1a:0:1:c0a8:100/120` (compute with
+`tailscale debug via 1 192.168.1.0/24`). Approve that route in the admin console
+alongside the v4 one.
+
+To use it, bypass the (broken) split DNS with `/etc/hosts` on the client. Every
+`*.home` service is behind Caddy on `.30`, whose 4via6 address is
+`fd7a:115c:a1e0:b1a:0:1:c0a8:11e`:
+
+```
+fd7a:115c:a1e0:b1a:0:1:c0a8:11e  jellyfin.home jellyseerr.home navidrome.home
+fd7a:115c:a1e0:b1a:0:1:c0a8:11e  sonarr.home radarr.home prowlarr.home lidarr.home
+fd7a:115c:a1e0:b1a:0:1:c0a8:11e  sabnzbd.home qbittorrent.home slskd.home soularr.home flaresolverr.home
+```
+
+These force the names over the tailnet IPv6 always (minor added latency on the
+home LAN); comment out when home if that matters. Chicken-and-egg note: you
+cannot set this up *from* a colliding network, because `ssh homelab` and the
+router are unreachable there. Configure it from home or a non-`.1.x` network
+(phone hotspot works).
 
 ## Media + library reconciliation (done)
 
@@ -171,8 +202,10 @@ atomic import moves). exFAT has no shrink tool, so the convert needed a full eva
 4. `rsync` everything back. Files keep `110000:110000` ownership (= container 10000).
 
 The `/mnt/sdc/t7-staging` copy served as the backup during the convert and was wiped
-afterwards. sdc now holds the daily `sdc-backup.sh` backup of appdata + music + PS4
-data; the raw video media is deliberately not backed up (redownloadable).
+afterwards. That `sdc` HDD was physically removed 2026-06-25; the daily backup now
+runs to the onboard SD card (`/mnt/sdcard`, `sdcard-backup.sh`) and captures appdata
++ music + monitoring + books + PS4 data, skipping the redownloadable raw video and
+the regenerable Docker layers.
 mp1 (jellystack-media) is a path-based bind, so it survived the reformat unchanged
 (mp3, the since-removed minecraft bind, did too).
 
@@ -238,7 +271,7 @@ Component notes:
   clients use `http://navidrome.home` (works remotely via the subnet router).
 
 Backups: all four apps keep state under `appdata/` (covered by the daily
-`sdc-backup.sh`); the music files themselves are on the T7 and are also in the
+`sdcard-backup.sh`); the music files themselves are on the T7 and are also in the
 backup set (unlike movies/tv). `media/downloads/slskd` is scratch and excluded.
 
 ## Still open

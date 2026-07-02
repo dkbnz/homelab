@@ -17,7 +17,7 @@ services:
       - TS_HOSTNAME=homelab-lan
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
-      - TS_ROUTES=192.168.1.0/24
+      - TS_ROUTES=192.168.1.0/24,fd7a:115c:a1e0:b1a:0:1:c0a8:100/120  # 4via6 (site 1) for overlapping-LAN remote access
       - TS_EXTRA_ARGS=--accept-dns=false
     volumes:
       - ./appdata/ts-subnet-router/state:/var/lib/tailscale
