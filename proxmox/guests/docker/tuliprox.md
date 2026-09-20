@@ -374,6 +374,37 @@ TotalRecordCount: 0
 
 Hence the M3U tuner. `hdhomerun.enabled: false` in `config.yml` documents this.
 
+**The guide covers far fewer channels than the lineup, and that is mostly the
+provider's data.** Measured 2026-09-20: tuliprox's `xmltv.php` returns 1.1 MB
+but only **62 channel elements and 3,968 programmes** against 16,449 channels.
+The plumbing is fine — `UK: BBC 1 HD` carries 40 correctly timed programmes in
+Jellyfin. Three separate causes, in order of size:
+
+1. **Only 1,805 of the 16,449 channels carry a `tvg-id` at all** (926 distinct).
+   The other ~14,600 are the 24/7 and PPV pseudo-channels; they have no EPG id
+   and never will. Trimming them (see
+   [What 16,449 channels costs](#what-16449-channels-costs)) costs no guide data.
+2. **The provider's own ids are inconsistent in case.**
+   `UK: SKY SPORT NEWS ᴿᴬᵂ` reports `epg_channel_id=skysportsnews.uk` while its
+   sibling `SKYGO: SKY SPORT NEWS HD` reports `SkySportsNews.uk`, and the XMLTV
+   carries both spellings as separate `<channel>` elements. Of our 926 distinct
+   ids, **777 have programmes when compared case-insensitively but only 187
+   under their exact spelling.**
+3. **`smart_match` does not help here.** The v3.3.0 docs are explicit that it
+   "activates the Smart Match engine for streams **without** a fixed `tvg-id`",
+   so it never rescues a channel whose id is present but mis-cased. Its
+   `fuzzy_matching` also defaults to `false` and `source.yml` does not set it.
+
+The provider's raw `xmltv.php` is **64.8 MB, 8,350 channels, 193,200
+programmes**, and tuliprox does fetch all of it
+(`data/input_provider/*_epg.xml`); the loss happens at match time, silently —
+nothing is logged.
+
+Realistic ceiling for this lineup is ~777 channels with a guide, ~41,771
+programmes. Getting there needs either a tuliprox version that matches ids
+case-insensitively, or a generated `mapping.yml` — the mapping DSL has
+`lowercase(a)` and can address `@epg_channel_id`. Neither has been done.
+
 **EPG needs an explicit `epg.sources` block on the input.** Without it XMLTV
 returns HTTP 200 with a ~137-byte empty guide. `url: "auto"` derives the
 provider's own `xmltv.php`; output goes to ~580 KB.
