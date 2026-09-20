@@ -57,6 +57,35 @@ services:
       - ./appdata/jellyseerr:/app/config
     restart: unless-stopped
 
+  # Live IPTV proxy for Jellyfin. The provider allows ONE concurrent connection,
+  # so tuliprox pulls each channel once and multicasts it to every viewer
+  # (share_live_streams). Any number of viewers on the SAME channel is fine; two
+  # DIFFERENT channels at once is not. Config in ./tuliprox/config, docs in
+  # tuliprox.md. No ports — Jellyfin reaches it on the compose network.
+  tuliprox:
+    image: ghcr.io/euzu/tuliprox:latest   # = 3.3.0; do NOT use :dev, see tuliprox.md
+    container_name: tuliprox
+    environment:
+      - TULIPROX_HOME=/app               # config.yml interpolates this
+      - TZ=${TZ}
+      - XTREAM_URL=${XTREAM_URL}
+      - XTREAM_USERNAME=${XTREAM_USERNAME}
+      - XTREAM_PASSWORD=${XTREAM_PASSWORD}
+      - TULIPROX_PROXY_REWRITE_SECRET=${TULIPROX_PROXY_REWRITE_SECRET}
+      - TULIPROX_JELLYFIN_PASSWORD=${TULIPROX_JELLYFIN_PASSWORD}
+    volumes:
+      # Distroless image runs as root, so these end up root-owned unlike the
+      # rest of the stack. PUID/PGID do nothing here.
+      - ./tuliprox/config:/app/config
+      - ./tuliprox/data:/app/data
+      - ./tuliprox/backup:/app/backup
+    healthcheck:
+      test: ["CMD", "/app/tuliprox", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
   # =========================================================
   # *arr suite + Prowlarr — LAN-only on phone (172.16.42.1)
   # =========================================================

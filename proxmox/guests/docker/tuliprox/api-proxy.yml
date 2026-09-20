@@ -1,0 +1,22 @@
+# Downstream account Jellyfin authenticates to tuliprox with. Reachable only on
+# the jellystack compose network, so plain http + container name is correct.
+#
+# Do NOT run the tuliprox `:dev` image against this file — 3.3.114 rewrites it on
+# startup and expands ${env:...} into plaintext.
+server:
+  - name: default
+    protocol: http
+    host: tuliprox
+    port: "8901"
+    timezone: Pacific/Auckland
+    message: "Dogs and Bogs TV"
+
+user:
+  - target: live
+    credentials:
+      - username: jellyfin
+        password: "${env:TULIPROX_JELLYFIN_PASSWORD}"
+        proxy: reverse        # stream through tuliprox so sharing can happen
+        server: default
+        max_connections: 4    # concurrent VIEWERS, not provider slots
+        status: Active

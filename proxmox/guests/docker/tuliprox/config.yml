@@ -1,0 +1,72 @@
+# tuliprox — IPTV proxy that fans one provider connection out to many viewers.
+# Deployed at /opt/jellystack/tuliprox/config on CT 102, mounted to /app/config.
+#
+# Written against tuliprox 3.3.0 (ghcr.io/euzu/tuliprox:latest). The docs on the
+# project's `develop` branch describe a NEWER schema that this image rejects —
+# read the docs at the v3.3.0 tag. See tuliprox.md for the specifics.
+#
+# Secrets come from /opt/jellystack/.env via ${env:...}.
+
+api:
+  host: 0.0.0.0
+  port: 8901
+  web_root: ${env:TULIPROX_HOME}/web
+
+working_dir: ${env:TULIPROX_HOME}/data
+backup_dir: ${env:TULIPROX_HOME}/backup
+
+process_parallel: false
+connect_timeout_secs: 15
+default_user_agent: "VLC/3.0.20 LibVLC/3.0.20"
+user_access_control: true   # actually enforce max_connections from api-proxy.yml
+update_on_boot: true
+sleep_timer_mins: 360       # kill forgotten streams after 6h
+
+# Refresh the playlist daily at 04:30 (sec min hour dom mon dow).
+schedules:
+  - schedule: "0 30 4 * * *"
+    targets: []
+
+log:
+  # NOTE: this does NOT fully redact at debug level — the `request_url=` line in
+  # the stream diagnostics prints the provider username and password in clear.
+  # Only ever run debug temporarily.
+  sanitize_sensitive_info: true
+  log_active_user: true
+  log_level: info
+
+# Off by default. Nothing needs it, and enabling it means configuring web_ui.auth.
+web_ui:
+  enabled: false
+
+# No local media here — the *arr stack owns that, tuliprox is live TV only.
+library:
+  enabled: false
+
+# DISABLED ON PURPOSE. tuliprox emits invalid JSON from /lineup.json (a trailing
+# comma), and Jellyfin's System.Text.Json parser throws on it, yielding 0
+# channels. Use Jellyfin's M3U tuner instead — see tuliprox.md. If a future
+# tuliprox fixes the trailing comma, flip this to true and pin device_id and
+# device_udn (left blank, they regenerate on every start and Jellyfin's saved
+# tuner stops matching after a restart).
+hdhomerun:
+  enabled: false
+  auth: false
+  devices:
+    - name: hdhr1
+      tuner_count: 4
+      port: 5004
+      friendly_name: "Dogs and Bogs TV"
+      device_id: "10500117"
+      device_udn: "uuid:EC335C71-9C59-4661-AD56-F2CE314E8A32"
+
+reverse_proxy:
+  rewrite_secret: ${env:TULIPROX_PROXY_REWRITE_SECRET}   # must stay stable across restarts
+  stream:
+    retry: true
+    buffer:
+      enabled: true
+      size: 1024               # 8 KB chunks -> ~8 MB per active stream
+    shared_burst_buffer_mb: 12 # replayed to late joiners so their decoder syncs
+    grace_period_millis: 2000
+    grace_period_timeout_secs: 4

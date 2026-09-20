@@ -1,0 +1,70 @@
+# Provider credentials live in /opt/jellystack/.env, never in this file.
+#
+# The provider carries 287,383 raw channels across 1,742 groups. Jellyfin cannot
+# cope with that, so the target is filtered down to the NZ/AU/US/UK/CA markets.
+#
+# BEFORE TRUSTING THIS FILTER, RUN:  python3 audit-filter.py
+# It queries the provider directly and prints every category with a KEEP/DROP
+# verdict, so you can see exactly what is being excluded and widen the filter if
+# it is cutting English channels you want. Counts below are rough expectations
+# from the 2026-09-20 catalogue, not measurements of this filter.
+templates:
+  # Wanted markets. Matched on BOTH the category and the channel title, because
+  # the provider prefixes categories with a pipe ("UK| GENERAL ᴴᴰ/ᴿᴬᵂ") and
+  # channel titles with a colon ("UK: SKY SPORT NEWS ᴿᴬᵂ"). Title-only matching
+  # misses whole categories.
+  - name: wanted_markets
+    value: '(Group ~ "^\s*(NZ|AU|US|UK|CA)\s*[|:].*") OR (Title ~ "^\s*(NZ|AU|US|UK|CA)\s*[|:].*")'
+
+  # The provider pads categories with "##### NAME #####" rows (~1,029 of them).
+  # Not channels — they would show up as dead entries in the Jellyfin guide.
+  - name: not_separator
+    value: 'NOT (Title ~ "^\s*[#=_-]+.*")'
+
+  # OPTIONAL EXTRAS — enable after running audit-filter.py and seeing what is in
+  # them. The 4K/8K categories are mixed-nationality (they carry e.g. Nordic
+  # "V SPORT" alongside English channels), so they are NOT included by default.
+  # To add them, append `OR !also_uhd!` to channel_lineup below.
+  - name: also_uhd
+    value: 'Group ~ "^\s*(4K|8K)\s*[|:].*"'
+
+  # NOTE: the old `not_hevc` term has been REMOVED. It existed only because the
+  # OCI host had no hardware encoder. CT 102 has QuickSync, so the ~850
+  # HEVC-tagged channels are usable and are now kept.
+  - name: channel_lineup
+    value: "!wanted_markets! AND !not_separator!"
+
+inputs:
+  - name: provider
+    type: xtream
+    url: "${env:XTREAM_URL}"          # scheme+host+port only, no /player_api.php
+    username: "${env:XTREAM_USERNAME}"
+    password: "${env:XTREAM_PASSWORD}"
+    enabled: true
+    # Without this the XMLTV endpoint returns 200 with a ~137-byte empty guide.
+    # "auto" derives the provider's own xmltv.php URL from the credentials above.
+    epg:
+      sources:
+        - url: "auto"
+          priority: -2
+          logo_override: true
+      smart_match:
+        enabled: true
+
+sources:
+  - inputs:
+      - provider
+    targets:
+      - name: live
+        output:
+          - type: xtream     # Xtream API + the XMLTV endpoint Jellyfin reads
+          - type: m3u        # what Jellyfin's M3U tuner points at
+            filename: live.m3u
+        # Required in 3.3.0 even when it matches everything.
+        filter: "!channel_lineup!"
+        options:
+          ignore_logo: false
+          # One upstream pull, many viewers — the whole reason this exists.
+          # In 3.3.0 this is a plain BOOL. The nested {hls, mpeg_ts} form in the
+          # develop-branch docs is rejected with "expected string scalar".
+          share_live_streams: true
