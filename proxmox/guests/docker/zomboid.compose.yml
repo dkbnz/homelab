@@ -1,0 +1,66 @@
+# Project Zomboid (Build 42) dedicated server on CT 102.
+# Notes: zomboid.md. Deployed at /opt/zomboid/compose.yml in CT 102.
+#
+# The server sits in the network namespace of its own Tailscale node
+# ("zomboid", 100.92.78.99). Players join play.dkb.nz:16261; the OCI box
+# (dkbnz/dogs-and-bogs, node pz-relay) DNATs 16261-16262/udp to this node.
+# The tailnet policy limits tag:pz-relay to those ports here. LAN players
+# use 192.168.1.30 through the published ports.
+#
+# Deploy:  docker compose -f /opt/zomboid/compose.yml up -d
+services:
+  ts-zomboid:
+    image: tailscale/tailscale:latest
+    container_name: ts-zomboid
+    hostname: zomboid
+    restart: unless-stopped
+    env_file:
+      - zomboid.env          # TS_AUTHKEY (encrypted via transcrypt)
+    environment:
+      - TS_HOSTNAME=zomboid
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_EXTRA_ARGS=--accept-dns=false
+    volumes:
+      - /opt/zomboid/data/tailscale:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    ports:
+      # LAN access. Tailnet players reach the same ports on the node's 100.x IP.
+      - "16261:16261/udp"
+      - "16262:16262/udp"
+
+  zomboid:
+    image: danixu86/project-zomboid-dedicated-server:latest
+    container_name: zomboid
+    restart: unless-stopped
+    network_mode: service:ts-zomboid
+    depends_on:
+      - ts-zomboid
+    env_file:
+      - zomboid.env          # ADMINPASSWORD, PASSWORD
+    environment:
+      - TZ=Pacific/Auckland
+      - SERVERNAME=homelab   # save/ini name under /home/steam/Zomboid
+      - DISPLAYNAME=Homelab
+      - PUBLIC=false
+      - ADMINUSERNAME=admin
+      - MIN_MEMORY=4096m
+      - MAX_MEMORY=4096m
+      - PORT=16261
+      - UDPPORT=16262
+      - STEAMVAC=true
+      - MODFOLDERS=workshop,steam,mods
+    volumes:
+      - /opt/zomboid/data/server:/home/steam/Zomboid   # saves, ini, sandbox vars, logs, backups
+      - /opt/zomboid/data/workshop:/home/steam/pz-dedicated/steamapps/workshop
+    # Watchtower stays on: image tags follow the Steam release and clients
+    # auto-update, so a stale server would refuse them. Updates restart the
+    # server at 04:00.
+    cpus: 3.0
+    mem_limit: 6g          # 4 GB heap (ZGC, counted as shmem) + ~1.5 GB native
+    # The entrypoint sends "quit" on SIGTERM and waits for the save.
+    stop_grace_period: 120s
