@@ -47,14 +47,24 @@ services:
       - /dev/dri:/dev/dri   # QSV transcoding (UHD 620, via CT 102 dev0 passthrough)
     restart: unless-stopped
 
-  jellyseerr:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseerr
+  # Seerr replaced Jellyseerr (fallenbagel/jellyseerr, deprecated) 2026-10-31.
+  # Runs as node (UID 1000), so ./appdata/seerr must be owned 1000:1000, and
+  # the image has no init process of its own, hence init: true.
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    init: true
     environment:
       - LOG_LEVEL=info
       - TZ=${TZ}
     volumes:
-      - ./appdata/jellyseerr:/app/config
+      - ./appdata/seerr:/app/config
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/settings/public || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
     restart: unless-stopped
 
   # Live IPTV proxy for Jellyfin. The provider allows ONE concurrent connection,
@@ -172,6 +182,7 @@ services:
       - 6881:6881/udp
       - 8090:8090   # qbittorrent-exporter (rides this netns); Prometheus scrapes it
       - 5030:5030   # slskd web/API (rides this netns too)
+      - 8097:8097   # stremio web UI + streaming server (rides this netns too)
     restart: unless-stopped
 
   qbittorrent:
@@ -188,6 +199,27 @@ services:
     volumes:
       - ./appdata/qbittorrent:/config
       - ./media/downloads:/downloads
+    restart: unless-stopped
+
+  # Stremio: ephemeral torrent streaming (web player + streaming server in one
+  # image, nginx in front). Shares gluetun's netns so torrent traffic goes
+  # through the VPN. Its default port 8080 clashes with qBittorrent in this
+  # netns, so the web UI listens on 8097. Caddy serves it as stream.home.
+  stremio:
+    image: tsaridas/stremio-docker:latest
+    container_name: stremio
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    environment:
+      - NO_CORS=1
+      - AUTO_SERVER_URL=1
+      - WEBUI_INTERNAL_PORT=8097
+      - CASTING_DISABLED=1
+    volumes:
+      - ./appdata/stremio:/root/.stremio-server   # settings + torrent cache (T7)
+    devices:
+      - /dev/dri:/dev/dri   # QSV for the server's transcoder
     restart: unless-stopped
 
   # Prometheus exporter for qBittorrent. Lives in gluetun's netns (same as qBit)
@@ -248,7 +280,7 @@ services:
   # Music pipeline: Lidarr -> (usenet/torrents via Prowlarr) or
   # (Soulseek via Soularr + slskd). Navidrome serves the library.
   # Requests go directly in the Lidarr UI (http://lidarr.home) -
-  # jellyseerr music support is still preview-only, not in stable.
+  # Seerr music support is still preview-only, not in stable.
   # =========================================================
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
@@ -329,7 +361,7 @@ services:
       - ./media/music:/music:ro
     restart: unless-stopped
 
-  # Reverse proxy for clean local URLs (http://jellyfin.home, http://jellyseerr.home).
+  # Reverse proxy for clean local URLs (http://jellyfin.home, http://seerr.home).
   # Names resolve via AdGuard DNS rewrites (*.home -> 192.168.1.30).
   caddy:
     image: caddy:2
@@ -339,8 +371,9 @@ services:
       - "80:80"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/hermes/caddy:/etc/caddy/hermes:ro   # *.home routes Hermes adds (hermes.md)
       - ./caddy/data:/data
       - ./caddy/config:/config
     depends_on:
       - jellyfin
-      - jellyseerr
+      - seerr

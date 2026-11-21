@@ -1,0 +1,3 @@
+# Docker integration is off on purpose: it needs the Docker socket, which is
+# root on CT 102. Status comes from each tile's siteMonitor instead.
+{}

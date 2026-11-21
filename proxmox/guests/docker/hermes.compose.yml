@@ -1,0 +1,180 @@
+# Hermes personal AI assistant on CT 102: hermes-webui running the
+# NousResearch/hermes-agent in-process. Notes: hermes.md. Deployed at /opt/hermes/compose.yml in CT 102.
+#
+# Hermes can create, start and stop Docker containers on CT 102 through
+# docker-proxy (below). New services go in /opt/hermes/services/<name>/, with
+# rules in hermes/services-AGENTS.md (deployed as /opt/hermes/services/AGENTS.md).
+#
+# Data is host /mnt/t7/hermes, bound into CT 102 as mp11 /opt/hermes:
+#   data/      Hermes home (~/.hermes): config.yaml, sessions, memories, skills,
+#              webui/ state, hermes-agent/ (agent install, managed by the WebUI)
+#   services/  compose projects Hermes creates (same path inside the container)
+#   caddy/     <name>.caddy snippets imported by the jellystack Caddy (*.home routes)
+#   triage/    retired mail-triage poller (script + state), kept for reference
+#   gateway/   Dockerfile for hermes-gateway
+#   mail/      mail-mcp Dockerfile + server.py, state/ (processed UIDs)
+#   bin/       docker CLI + compose plugin (static binaries, see hermes.md)
+#
+# Deploy:  docker compose -f /opt/hermes/compose.yml up -d
+services:
+  # =========================================================
+  # Docker API proxy for Hermes. Only reachable on the internal dockerapi
+  # network. Blocks swarm, secrets, plugins, system and daemon config. It does
+  # NOT limit what a container may bind-mount, so Hermes is effectively root in
+  # CT 102. See hermes.md, Security.
+  # =========================================================
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: docker-proxy
+    environment:
+      - CONTAINERS=1
+      - IMAGES=1
+      - NETWORKS=1
+      - VOLUMES=1
+      - EXEC=1
+      - BUILD=1
+      - INFO=1
+      - EVENTS=1
+      - POST=1
+      - DELETE=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - dockerapi
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    mem_limit: 64m
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
+    restart: unless-stopped
+
+  # =========================================================
+  # Hermes, via hermes-webui (nesquena/hermes-webui), single container.
+  # The WebUI runs the Hermes agent in-process (upstream default) and installs
+  # its own copy of the agent into data/hermes-agent on first start.
+  #   LAN:      http://assistant.home (direct http://192.168.1.30:8787)
+  #   iPhone:   Hermex app -> https://homelab-lan.shetland-gamma.ts.net
+  #             (tailscale serve on ts-subnet-router, see hermes.md)
+  #   Login:    HERMES_WEBUI_PASSWORD from hermes.env
+  # Agent tools run in this container: Docker goes through docker-proxy, new
+  # services go in /opt/hermes/services (same path as on CT 102).
+  # =========================================================
+  hermes:
+    image: ghcr.io/nesquena/hermes-webui:0.52.443
+    container_name: hermes
+    env_file:
+      - hermes.env             # OPENROUTER_API_KEY, KB_TOKEN, HERMES_WEBUI_PASSWORD (encrypted)
+    environment:
+      - TZ=Pacific/Auckland
+      - HERMES_TIMEZONE=Pacific/Auckland
+      - HERMES_WEBUI_HOST=0.0.0.0
+      - HERMES_WEBUI_PORT=8787
+      - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
+      - HERMES_WEBUI_DEFAULT_WORKSPACE=/opt/hermes/services
+      - WANTED_UID=10000       # owner of data/
+      - WANTED_GID=10000
+      # Docker CLI talks to the filtered proxy, not the socket.
+      - DOCKER_HOST=tcp://docker-proxy:2375
+      # Mnemosyne memory plugin (side venv in data/venvs/mnemosyne, see
+      # hermes.md): keep the embedding model on the data dir, not /tmp.
+      - FASTEMBED_CACHE_PATH=/home/hermeswebui/.hermes/cache/fastembed
+    volumes:
+      - ./data:/home/hermeswebui/.hermes
+      # Same paths as on CT 102, so relative bind mounts in compose files that
+      # Hermes writes resolve to the same place for the Docker daemon.
+      - /opt/hermes/services:/opt/hermes/services
+      - /opt/hermes/caddy:/opt/hermes/caddy
+      # Static docker CLI + compose plugin (the image has neither), see hermes.md.
+      - /opt/hermes/bin/docker:/usr/local/bin/docker:ro
+      - /opt/hermes/bin/docker-compose:/usr/local/lib/docker/cli-plugins/docker-compose:ro
+    ports:
+      - 8787:8787
+    networks:
+      - default
+      - dockerapi              # docker-proxy only
+      - kbnet                  # vault-kb MCP at 172.31.77.2 (vault.compose.yml)
+      - mailnet                # mail-mcp (mail/pa profiles)
+    mem_limit: 2g              # Mnemosyne local embeddings (ONNX) want headroom
+    cpus: 1.5
+    labels:
+      - com.centurylinklabs.watchtower.enable=false   # pinned; upgrade by hand
+    restart: unless-stopped
+
+  # =========================================================
+  # Hermes gateway: cron scheduler, kanban dispatcher and Telegram
+  # (@nova_pa_ai_bot, default profile). Shares data/ with `hermes` and runs
+  # every profile's cron jobs (gateway.multiplex_profiles). Built locally from
+  # hermes/gateway/Dockerfile to match the WebUI (Python 3.12, agent v0.21.5,
+  # uid 10000, same home path). See hermes.md, Gateway.
+  # =========================================================
+  hermes-gateway:
+    image: hermes-gateway:v2026.9.24
+    build: ./gateway
+    container_name: hermes-gateway
+    env_file:
+      - hermes.env             # OpenRouter, Telegram bot + allowed users, KB_TOKEN (encrypted)
+    environment:
+      - TZ=Pacific/Auckland
+      - HERMES_TIMEZONE=Pacific/Auckland
+      - DOCKER_HOST=tcp://docker-proxy:2375
+      - FASTEMBED_CACHE_PATH=/home/hermeswebui/.hermes/cache/fastembed
+    volumes:
+      - ./data:/home/hermeswebui/.hermes
+      - /opt/hermes/services:/opt/hermes/services
+      - /opt/hermes/caddy:/opt/hermes/caddy
+      - /opt/hermes/bin/docker:/usr/local/bin/docker:ro
+      - /opt/hermes/bin/docker-compose:/usr/local/lib/docker/cli-plugins/docker-compose:ro
+    networks:
+      - default
+      - dockerapi
+      - kbnet
+      - mailnet
+    # Kanban workers are subprocesses here (~350-450 MB each);
+    # kanban.max_in_progress: 2 keeps them inside this limit.
+    mem_limit: 2g
+    cpus: 1.5
+    labels:
+      - com.centurylinklabs.watchtower.enable=false   # local image
+    restart: unless-stopped
+
+  # =========================================================
+  # mail-mcp (hermes/mail/server.py): the mailbox as fixed MCP tools.
+  #   MCP: http://mail-mcp:8780/mcp on mailnet only (not published)
+  #   MAIL_TOKEN (all tools, `mail` profile), MAIL_DRAFT_TOKEN (draft_new +
+  #   notify only, `pa` profile). No send tool: replies go to Drafts.
+  # Holds the IMAP/SMTP passwords; Hermes never sees them.
+  # =========================================================
+  mail-mcp:
+    image: mail-mcp:1
+    build: ./mail
+    container_name: mail-mcp
+    env_file:
+      - mail-triage.env        # IMAP/SMTP creds, MAIL_ACCOUNTS, TELEGRAM_CHAT_ID (encrypted)
+      - mail-mcp.env           # MAIL_TOKEN, MAIL_DRAFT_TOKEN (encrypted)
+    environment:
+      - TZ=Pacific/Auckland
+      - STATE_DIR=/state
+    volumes:
+      - ./mail/state:/state
+    networks:
+      - default                # IMAP/SMTP, Telegram, one-click unsubscribe
+      - mailnet
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.5
+    labels:
+      - com.centurylinklabs.watchtower.enable=false   # local image
+    restart: unless-stopped
+
+networks:
+  mailnet:
+    internal: true
+  dockerapi:
+    internal: true
+  kbnet:
+    external: true             # created by hand, see vault.compose.yml

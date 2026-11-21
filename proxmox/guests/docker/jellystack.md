@@ -1,7 +1,7 @@
 # jellystack (CT 102)
 
 The media stack, migrated from a OnePlus phone (postmarketOS + rootless Podman) to
-the Docker LXC. Jellyfin, Jellyseerr, Sonarr, Radarr, Prowlarr, SABnzbd, gluetun
+the Docker LXC. Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, gluetun
 (Surfshark WireGuard) + qBittorrent, FlareSolverr, Unpackerr, the music pipeline
 (Lidarr, slskd in gluetun's netns, Soularr, Navidrome), and a Tailscale subnet
 router for remote access.
@@ -43,7 +43,7 @@ jellyfin container (`devices: /dev/dri`). Hardware accel is set to `qsv` in
 10-bit VP9 no — Kaby Lake can't). Measured ~10x realtime on a 1080p HEVC 10-bit
 to h264 transcode.
 
-Jellyfin, Jellyseerr, and Navidrome have no host ports — reach them through the
+Jellyfin, Seerr, and Navidrome have no host ports — reach them through the
 Caddy proxy (`http://jellyfin.home` etc.), which works on the LAN and remotely
 via the subnet router. The rest also have direct LAN ports at `192.168.1.30`:
 Sonarr `:8989`, Radarr `:7878`, Prowlarr `:9696`, SABnzbd `:8081`, qBittorrent
@@ -58,7 +58,7 @@ hostname. The `caddy/Caddyfile` maps:
 | URL | Upstream |
 |-----|----------|
 | `http://jellyfin.home`     | `jellyfin:8096` |
-| `http://jellyseerr.home`   | `jellyseerr:5055` |
+| `http://seerr.home` (and the old `jellyseerr.home`) | `seerr:5055` |
 | `http://sonarr.home`       | `sonarr:8989` |
 | `http://radarr.home`       | `radarr:7878` |
 | `http://prowlarr.home`     | `prowlarr:9696` |
@@ -69,6 +69,7 @@ hostname. The `caddy/Caddyfile` maps:
 | `http://navidrome.home`    | `navidrome:4533` |
 | `http://slskd.home`        | `gluetun:5030` (slskd shares gluetun's netns) |
 | `http://soularr.home`      | `soularr:8265` (status/log web UI) |
+| `http://stream.home`      | `gluetun:8097` (Stremio shares gluetun's netns) |
 
 Name resolution is via an **AdGuard Home wildcard DNS rewrite** (`*.home` ->
 `192.168.1.30`, see `proxmox/guests/adguard/AdGuardHome.yaml`), so any new `.home`
@@ -101,6 +102,15 @@ Console-side config (not in this repo): the approved routes on `homelab-lan`,
 and the split DNS entry under DNS -> Nameservers. Both need redoing if the
 node is recreated without its state dir (`appdata/ts-subnet-router/state`).
 
+### HTTPS via tailscale serve
+
+`ts-subnet-router` also runs `tailscale serve`:
+`https://homelab-lan.shetland-gamma.ts.net` -> `http://192.168.1.30:8787`
+(Hermes, for the Hermex iPhone app, which needs HTTPS). Tailnet only. The
+config lives in the node's state dir and survives restarts. See `hermes.md`,
+Remote access. This also works from a colliding LAN, because it uses the
+node's 100.x address, not the subnet route.
+
 ### Overlapping-LAN remote access (4via6)
 
 The subnet route above breaks when the network you are physically on also uses
@@ -121,9 +131,9 @@ To use it, bypass the (broken) split DNS with `/etc/hosts` on the client. Every
 `fd7a:115c:a1e0:b1a:0:1:c0a8:11e`:
 
 ```
-fd7a:115c:a1e0:b1a:0:1:c0a8:11e  jellyfin.home jellyseerr.home navidrome.home
+fd7a:115c:a1e0:b1a:0:1:c0a8:11e  jellyfin.home seerr.home jellyseerr.home navidrome.home
 fd7a:115c:a1e0:b1a:0:1:c0a8:11e  sonarr.home radarr.home prowlarr.home lidarr.home
-fd7a:115c:a1e0:b1a:0:1:c0a8:11e  sabnzbd.home qbittorrent.home slskd.home soularr.home flaresolverr.home
+fd7a:115c:a1e0:b1a:0:1:c0a8:11e  sabnzbd.home qbittorrent.home slskd.home soularr.home flaresolverr.home stream.home
 ```
 
 These force the names over the tailnet IPv6 always (minor added latency on the
@@ -233,7 +243,7 @@ the Lidarr import. Navidrome serves the resulting `/music` library over the
 Subsonic API (use Symfonium/play:Sub etc. against `http://navidrome.home`).
 Jellyfin also indexes the same folder.
 
-Jellyseerr music requests are **not** wired up: music support only exists in the
+Seerr music requests are **not** wired up: music support only exists in the
 experimental `preview-music-support` image, not in stable. Revisit when it ships
 in a stable release.
 
@@ -279,3 +289,46 @@ backup set (unlike movies/tv). `media/downloads/slskd` is scratch and excluded.
 - The entire phone-era T7 `media-server/` directory was already removed in the first
   migration. The T7 now holds `jellystack-media/`, `monitoring/`, and PS4 game data,
   all on ext4. (The minecraft world moved off the lab 2026-06-06.)
+
+## Seerr (was Jellyseerr)
+
+Jellyseerr (`fallenbagel/jellyseerr`) was deprecated in favour of Seerr
+(`ghcr.io/seerr-team/seerr`). Migrated 2026-10-31 following
+https://docs.seerr.dev/migration-guide/:
+
+- Config moved from `appdata/jellyseerr` to `appdata/seerr` and chowned to
+  `1000:1000`, because Seerr runs as `node` (UID 1000). On the host that is
+  `101000:101000`.
+- The service and container are now named `seerr`. It runs with `init: true`
+  (the image ships no init) and has a healthcheck on `/api/v1/settings/public`.
+- Seerr migrates the Jellyseerr database on first start. Requests, users, and
+  the Jellyfin/Radarr/Sonarr links all carried over.
+- Caddy serves `seerr.home` and keeps `jellyseerr.home` as an alias, so old
+  bookmarks and remote `/etc/hosts` entries still work.
+- Pre-migration config backup: `appdata/jellyseerr-backup-20261031.tgz`.
+  Delete it once Seerr has run cleanly for a while.
+
+Seerr's Jellyfin settings still list `externalHostname`
+`https://jellyseerr.shetland-gamma.ts.net`. That name belonged to a `ts-*`
+sidecar torn down earlier, so links built from it are dead. Change it in
+Settings > Jellyfin if you want working external links.
+
+## Stremio (ephemeral streaming)
+
+`stremio` (`tsaridas/stremio-docker`, web player + streaming server behind
+nginx) at `http://stream.home`. It streams torrents on demand, Popcorn Time
+style: nothing is imported into the library, and pieces live in a bounded cache
+under `appdata/stremio` (2 GB default, set under Settings > Streaming).
+
+- Runs in gluetun's netns, so torrent traffic exits through Surfshark like
+  qBittorrent's. Its default port 8080 clashes with qBittorrent there, so
+  `WEBUI_INTERNAL_PORT=8097` and gluetun publishes 8097.
+- `AUTO_SERVER_URL=1` makes the web UI use `http://stream.home/` as its
+  streaming server. Settings shows "Server Version" when connected.
+- `/dev/dri` is passed through. The server's startup self-test picks the
+  `vaapi-renderD128` profile for HLS transcoding.
+- No auth (LAN/tailnet only, like the rest of `*.home`). Addons and the
+  optional Stremio account are configured in the web UI.
+- Smoke test without the UI (public-domain Sintel torrent):
+  `curl -r 0-1000000 -o /dev/null -w '%{http_code}\n' http://stream.home/08ada5a7a6183aae1e09d831df6748d566095a10/5`
+  returns `206` once the torrent has been added via `POST /<hash>/create`.

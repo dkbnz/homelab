@@ -12,13 +12,15 @@ documented and repeatable.
 - **RAM**: 16 GB
 - **Storage**:
   - 64 GB SanDisk SSD - boot, `local` (dir, on `pve-root`) and `local-lvm` (thin pool)
-  - 931 GB Samsung T7 (ext4) - data disk, mounted by UUID at host `/mnt/t7`,
-    bind-mounted into CT 102 (mp1 media, mp4 monitoring). Converted from exFAT to
-    ext4 so the *arr apps get real ownership + hardlinks.
-  - 465 GB USB HDD (ext4) - mounted by UUID at `/mnt/sdc`; holds the daily backup of
-    the irreplaceable data (`scripts/sdc-backup.sh`: appdata + music + PS4 data, not
-    the redownloadable media)
-  - The two USB disks' `sdX` names drift between boots; both mount by UUID.
+  - 931 GB Samsung T7 (ext4) - data disk on a USB3 SuperSpeed port, mounted by UUID
+    at host `/mnt/t7`, bind-mounted into CT 102 (mp0 appdata, mp1 media, mp2 docker,
+    mp4 monitoring, mp5 books, mp6 desktop, mp7 valheim). Converted from exFAT to ext4 so the
+    *arr apps get real ownership + hardlinks. Its `sdX` name drifts between boots, so
+    it mounts by UUID.
+  - 953 GB onboard SD card (ext4) - mounted by UUID at `/mnt/sdcard`; holds the daily
+    backup of the irreplaceable data (`scripts/sdcard-backup.sh`: appdata + music +
+    monitoring + books + PS4 data, not the redownloadable media or Docker layers).
+    Replaced the 465 GB USB HDD (`/mnt/sdc`), which was physically removed 2026-06-25.
 - The `local-lvm` thin pool was extended to fill the volume group after it hit 100%
   (a runaway Docker pull); keep an eye on `pvesm status` before allocating disks.
 - **Network**: single bridge `vmbr0` on `eno0`. Onboard WiFi is disabled.
@@ -38,7 +40,7 @@ Guest configs are snapshotted in `guests/` (`*.conf`), application config sits
 alongside (`guests/adguard/`, `guests/docker/`).
 
 > Note: AdGuard Home now binds `0.0.0.0` (serves DNS on the LXC's IP `192.168.1.20`)
-> and provides DNS rewrites for `jellyfin.home` / `jellyseerr.home`. It previously
+> and provides DNS rewrites for `jellyfin.home` / `seerr.home`. It previously
 > bound `192.168.1.100` — an address the LXC doesn't have — so it crash-looped for
 > ~8 days until this was fixed. Point client DNS at `192.168.1.20` to use it.
 

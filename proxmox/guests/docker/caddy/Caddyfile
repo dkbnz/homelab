@@ -11,8 +11,8 @@
 http://jellyfin.home {
     reverse_proxy jellyfin:8096
 }
-http://jellyseerr.home {
-    reverse_proxy jellyseerr:5055
+http://seerr.home, http://jellyseerr.home {
+    reverse_proxy seerr:5055
 }
 http://sonarr.home {
     reverse_proxy sonarr:8989
@@ -41,6 +41,9 @@ http://navidrome.home {
 http://slskd.home {
     reverse_proxy gluetun:5030   # slskd shares gluetun's netns
 }
+http://stream.home {
+    reverse_proxy gluetun:8097   # stremio shares gluetun's netns
+}
 http://soularr.home {
     reverse_proxy soularr:8265   # status/log web UI
 }
@@ -64,6 +67,25 @@ http://prometheus.home {
 http://desktop.home {
     reverse_proxy 192.168.1.30:3010
 }
+# archive stack (separate compose project) - offline Kiwix + file browser.
+http://wiki.home {
+    reverse_proxy 192.168.1.30:8088
+}
+http://files.home {
+    reverse_proxy 192.168.1.30:8087
+}
+# homepage (separate compose project) - dashboard with a tile per service.
+http://home.home {
+    reverse_proxy 192.168.1.30:3020
+}
+# Hermes (separate compose project) - hermes-webui chat UI.
+http://assistant.home {
+    reverse_proxy 192.168.1.30:8787
+}
+# vault (separate compose project) - SilverBullet wiki over /mnt/t7/vault.
+http://vault.home {
+    reverse_proxy 192.168.1.30:3030
+}
 # Other guests/hosts on the LAN. AdGuard's wildcard rewrite (*.home -> .30)
 # lands everything here; Caddy fans out by Host header.
 http://adguard.home {
@@ -79,3 +101,7 @@ http://proxmox.home {
 http://homeassistant.home {
     reverse_proxy 192.168.1.40:8123   # HA trusts .30 as proxy (http: block)
 }
+
+# Services Hermes creates write one <name>.caddy file each into /opt/hermes/caddy
+# (mounted here read-only). See hermes.md.
+import /etc/caddy/hermes/*.caddy

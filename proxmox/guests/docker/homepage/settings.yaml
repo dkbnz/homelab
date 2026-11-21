@@ -1,0 +1,23 @@
+# Homepage settings. Deployed to /opt/homepage/config in CT 102. Notes: homepage.md.
+title: Homelab
+theme: dark
+color: slate
+headerStyle: clean
+hideVersion: true
+statusStyle: dot
+layout:
+  Media:
+    style: row
+    columns: 3
+  Downloads:
+    style: row
+    columns: 4
+  Books:
+    style: row
+    columns: 2
+  Knowledge & Tools:
+    style: row
+    columns: 4
+  Infrastructure:
+    style: row
+    columns: 3

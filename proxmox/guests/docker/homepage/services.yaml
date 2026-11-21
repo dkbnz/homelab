@@ -1,0 +1,183 @@
+# Homepage tiles. Deployed to /opt/homepage/config in CT 102. Notes: homepage.md.
+#
+# href       = what the tile opens in your browser (the Caddy .home name)
+# siteMonitor/widget url = what the homepage container itself calls. Jellystack
+#              apps are reached by container name (homepage joins jellystack_default);
+#              everything else by LAN IP and published port.
+# {{HOMEPAGE_VAR_*}} values come from homepage.env (encrypted via transcrypt).
+# A widget whose credentials are still blank shows an API error until filled in.
+
+- Media:
+    - Jellyfin:
+        icon: jellyfin.png
+        href: http://jellyfin.home
+        description: Movies, TV, live TV
+        siteMonitor: http://jellyfin:8096
+        widget:
+          type: jellyfin
+          url: http://jellyfin:8096
+          key: "{{HOMEPAGE_VAR_JELLYFIN_KEY}}"
+          enableBlocks: true
+          enableNowPlaying: true
+    - Seerr:
+        icon: jellyseerr.png
+        href: http://seerr.home
+        description: Request movies and TV
+        siteMonitor: http://seerr:5055
+        widget:
+          type: jellyseerr
+          url: http://seerr:5055
+          key: "{{HOMEPAGE_VAR_JELLYSEERR_KEY}}"
+    - Navidrome:
+        icon: navidrome.png
+        href: http://navidrome.home
+        description: Music streaming
+        siteMonitor: http://navidrome:4533
+        widget:
+          type: navidrome
+          url: http://navidrome:4533
+          user: "{{HOMEPAGE_VAR_NAVIDROME_USER}}"
+          token: "{{HOMEPAGE_VAR_NAVIDROME_TOKEN}}"
+          salt: "{{HOMEPAGE_VAR_NAVIDROME_SALT}}"
+
+- Downloads:
+    - Sonarr:
+        icon: sonarr.png
+        href: http://sonarr.home
+        siteMonitor: http://sonarr:8989
+        widget:
+          type: sonarr
+          url: http://sonarr:8989
+          key: "{{HOMEPAGE_VAR_SONARR_KEY}}"
+    - Radarr:
+        icon: radarr.png
+        href: http://radarr.home
+        siteMonitor: http://radarr:7878
+        widget:
+          type: radarr
+          url: http://radarr:7878
+          key: "{{HOMEPAGE_VAR_RADARR_KEY}}"
+    - Lidarr:
+        icon: lidarr.png
+        href: http://lidarr.home
+        siteMonitor: http://lidarr:8686
+        widget:
+          type: lidarr
+          url: http://lidarr:8686
+          key: "{{HOMEPAGE_VAR_LIDARR_KEY}}"
+    - Prowlarr:
+        icon: prowlarr.png
+        href: http://prowlarr.home
+        siteMonitor: http://prowlarr:9696
+        widget:
+          type: prowlarr
+          url: http://prowlarr:9696
+          key: "{{HOMEPAGE_VAR_PROWLARR_KEY}}"
+    - SABnzbd:
+        icon: sabnzbd.png
+        href: http://sabnzbd.home
+        siteMonitor: http://sabnzbd:8080
+        widget:
+          type: sabnzbd
+          url: http://sabnzbd:8080
+          key: "{{HOMEPAGE_VAR_SABNZBD_KEY}}"
+    - qBittorrent:
+        icon: qbittorrent.png
+        href: http://qbittorrent.home
+        description: Behind the gluetun VPN
+        siteMonitor: http://gluetun:8080
+        widget:
+          type: qbittorrent
+          url: http://gluetun:8080
+          username: "{{HOMEPAGE_VAR_QBITTORRENT_USER}}"
+          password: "{{HOMEPAGE_VAR_QBITTORRENT_PASS}}"
+    - slskd:
+        icon: slskd.png
+        href: http://slskd.home
+        description: Soulseek client
+        siteMonitor: http://gluetun:5030
+    - Soularr:
+        icon: mdi-music-box-multiple
+        href: http://soularr.home
+        description: Lidarr to Soulseek bridge
+        siteMonitor: http://soularr:8265
+
+- Books:
+    - Calibre-Web:
+        icon: calibre-web.png
+        href: http://cwa.home
+        description: Library + OPDS for the Kobo
+        siteMonitor: http://192.168.1.30:8083
+    - Shelfmark:
+        icon: mdi-book-search
+        href: http://books.home
+        description: Search and request books
+        siteMonitor: http://192.168.1.30:8084
+
+- Knowledge & Tools:
+    - Wiki:
+        icon: kiwix.png
+        href: http://wiki.home
+        description: Offline Wikipedia, Stack Exchange, iFixit
+        siteMonitor: http://192.168.1.30:8088
+    - Files:
+        icon: mdi-folder-download
+        href: http://files.home
+        description: Archive downloads, maps, installers
+        siteMonitor: http://192.168.1.30:8087
+    - Assistant:
+        icon: mdi-robot
+        href: http://assistant.home
+        description: Hermes AI assistant
+        siteMonitor: http://192.168.1.30:8787
+    - Desktop:
+        icon: mdi-monitor
+        href: http://desktop.home
+        description: Browser XFCE desktop
+        siteMonitor: http://192.168.1.30:3010
+
+- Infrastructure:
+    - Proxmox:
+        icon: proxmox.png
+        href: http://proxmox.home
+        siteMonitor: https://192.168.1.10:8006
+        widget:
+          type: proxmox
+          url: https://192.168.1.10:8006
+          username: "{{HOMEPAGE_VAR_PROXMOX_USER}}"
+          password: "{{HOMEPAGE_VAR_PROXMOX_TOKEN}}"
+          node: proxmox
+    - AdGuard:
+        icon: adguard-home.png
+        href: http://adguard.home
+        description: DNS + ad blocking
+        siteMonitor: http://192.168.1.20
+        widget:
+          type: adguard
+          url: http://192.168.1.20
+          username: "{{HOMEPAGE_VAR_ADGUARD_USER}}"
+          password: "{{HOMEPAGE_VAR_ADGUARD_PASS}}"
+    - Home Assistant:
+        icon: home-assistant.png
+        href: http://homeassistant.home
+        siteMonitor: http://192.168.1.40:8123
+        widget:
+          type: homeassistant
+          url: http://192.168.1.40:8123
+          key: "{{HOMEPAGE_VAR_HOMEASSISTANT_TOKEN}}"
+    - Grafana:
+        icon: grafana.png
+        href: http://grafana.home
+        siteMonitor: http://192.168.1.30:3000
+        widget:
+          type: grafana
+          url: http://192.168.1.30:3000
+          username: "{{HOMEPAGE_VAR_GRAFANA_USER}}"
+          password: "{{HOMEPAGE_VAR_GRAFANA_PASS}}"
+    - Prometheus:
+        icon: prometheus.png
+        href: http://prometheus.home
+        siteMonitor: http://192.168.1.30:9090
+        widget:
+          type: prometheus
+          url: http://192.168.1.30:9090

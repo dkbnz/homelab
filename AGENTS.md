@@ -23,11 +23,15 @@ on `eno0`. Onboard WiFi disabled.
 | 102 | LXC  | docker   | `192.168.1.30`   | Docker host (watchtower + service stacks)|
 
 Hardware: Intel i7-8650U, 16 GB RAM. 64 GB SanDisk SSD (boot, `local`,
-`local-lvm`); 931 GB Samsung T7 (**ext4**, mounted `/mnt/t7`; bound into CT 102 as
-mp1 `jellystack-media` + mp4 `monitoring` + mp5 `books`); 465 GB USB HDD (ext4, mounted
-`/mnt/sdc`; holds the daily `sdc-backup.sh` backup of appdata + PS4 data - see
-Common workflows). Both USB disks mount by UUID; their `sdX` names drift between
-boots, so don't address them by device name.
+`local-lvm`); 931 GB Samsung T7 (**ext4**, mounted `/mnt/t7`, on a USB3 SuperSpeed
+port; bound into CT 102 as mp0 `appdata` + mp1 `jellystack-media` + mp2 `docker` +
+mp4 `monitoring` + mp5 `books` + mp6 `desktop` + mp7 `valheim` (stopped, world kept) +
+mp8 `archive` + mp9 `nanobot` (retired, stopped) + mp10 `vault` + mp11 `hermes` + mp12 `zomboid`); 953 GB onboard SD card (ext4,
+mounted `/mnt/sdcard`; holds the daily `sdcard-backup.sh` backup of the irreplaceable
+data - see Common workflows). The old 465 GB USB HDD (`/mnt/sdc`) was the backup
+target until 2026-06-25, when it was physically removed and the SD card took over.
+The T7 mounts by UUID; its `sdX` name drifts between boots, so don't address it by
+device name.
 
 All guests were created with the [community Proxmox helper scripts](https://community-scripts.github.io/ProxmoxVE/).
 
@@ -64,9 +68,38 @@ proxmox/                 Current Proxmox state (source of truth)
     docker/selkies-desktop.compose.yml  Selkies/Webtop browser XFCE desktop (deployed on CT 102)
     docker/selkies-desktop.env      selkies-desktop secrets (ENCRYPTED via transcrypt)
     docker/selkies-desktop.md       browser desktop deploy + storage + access notes
+    docker/tuliprox/*.yml           tuliprox config (no secrets; ${env:...} from jellystack.env)
+    docker/tuliprox.md              live IPTV for Jellyfin: deploy, gotchas, why it left OCI
+    docker/valheim.compose.yml      Valheim dedicated server (REMOVED 2026-10-04; world kept on T7)
+    docker/valheim.env              valheim server password (ENCRYPTED via transcrypt)
+    docker/valheim.md               Valheim deploy, join code, world copy notes
+    docker/archive.compose.yml      offline archive: kiwix-serve + file browser (deployed on CT 102)
+    docker/archive/zim-list.txt     ZIM files kept by archive-sync.sh
+    docker/archive.md               offline archive layout, refresh, offline rebuild notes
+    docker/hermes.compose.yml       Hermes: WebUI (in-process agent) + gateway (cron, kanban, Telegram) + mail-mcp + docker-proxy (deployed on CT 102)
+    docker/hermes.env               Hermes OpenRouter key, Telegram bot, WebUI password (ENCRYPTED via transcrypt)
+    docker/hermes/services-AGENTS.md  rules Hermes follows when it creates services (/opt/hermes/services/AGENTS.md)
+    docker/hermes.md                Hermes deploy, config, service creation, security notes
+    docker/hermes/gateway/Dockerfile  hermes-gateway image (Python 3.12, agent pinned to match the WebUI)
+    docker/hermes/mail/             mail-mcp: the mailbox as MCP tools for Hermes (no send)
+    docker/hermes/profiles/*/SOUL.md  instructions for the mail and pa profiles
+    docker/mail-triage.env          iCloud IMAP/SMTP creds + Telegram chat, used by mail-mcp (ENCRYPTED via transcrypt)
+    docker/mail-mcp.env             mail-mcp bearer tokens (ENCRYPTED via transcrypt)
+    docker/vault.compose.yml        SilverBullet wiki + vault-kb MCP + vault-git over /mnt/t7/vault (deployed on CT 102)
+    docker/vault.env                SilverBullet login + vault-kb token (ENCRYPTED via transcrypt)
+    docker/vault/kb/                vault-kb MCP server source (Dockerfile + server.py)
+    docker/vault.md                 vault layout, wiki, KB, git history, email filing
+    docker/zomboid.compose.yml      Project Zomboid B42 + Tailscale sidecar; public via OCI relay (deployed on CT 102)
+    docker/zomboid.env              PZ admin/server passwords (ENCRYPTED via transcrypt)
+    docker/zomboid.md               PZ deploy, OCI relay path, tailnet policy, tailscale login
+    docker/homepage.compose.yml     Homepage dashboard, a tile per service (deployed on CT 102)
+    docker/homepage.env             Homepage widget API keys/passwords (ENCRYPTED via transcrypt)
+    docker/homepage/*.yaml          Homepage config (services, settings, widgets)
+    docker/homepage.md              dashboard layout, credentials table, how to add keys/tiles
   host/                  Bare-metal host services (node_exporter, pve-exporter;
                          pve.yml ENCRYPTED via transcrypt)
   scripts/snapshot.sh    Pull live guest/app config back into the repo
+  scripts/archive-sync.sh  Monthly refresh of the Kiwix ZIM archive (host cron)
 terraform/               Backblaze B2 backup bucket + key (state encrypted)
 ansible/                 Optional: install Docker + deploy stacks onto a host
 services/                Deployable docker compose stacks (not all currently running)
@@ -85,7 +118,26 @@ Navidrome — see `proxmox/guests/docker/jellystack.md`), `watchtower`, and the
 the **books** stack (CWA + Shelfmark ebook pipeline for a Kobo,
 `proxmox/guests/docker/books.md`), and the **selkies-desktop**
 stack (a browser-accessible XFCE desktop streamed over WebRTC,
-`proxmox/guests/docker/selkies-desktop.md`). The
+`proxmox/guests/docker/selkies-desktop.md`), and **tuliprox**, which proxies a
+one-connection IPTV subscription into Jellyfin's Live TV
+(`proxmox/guests/docker/tuliprox.md`), and the **archive** stack (offline Kiwix
+copy of Wikipedia/Stack Exchange/iFixit, `proxmox/guests/docker/archive.md`),
+and **Hermes**, a personal AI assistant (hermes-webui at `assistant.home`, the
+Hermex iPhone app over Tailscale HTTPS) backed by a cloud model. It can create
+and run Docker services on CT 102 on request
+(`proxmox/guests/docker/hermes.md`). It also runs Doug's iCloud inbox and a
+kanban board of his projects (profiles `mail` and `pa`). It replaced nanobot
+and the mail-triage poller on 2026-10-09, and **Homepage**, the dashboard at
+`home.home` (`proxmox/guests/docker/homepage.md`), and the **vault** stack: Doug's
+knowledge vault (ex-Obsidian, now homelab-only SSOT at `/mnt/t7/vault`), with the
+SilverBullet wiki at `vault.home` and the vault-kb MCP server that Hermes
+uses (`proxmox/guests/docker/vault.md`), and **Stremio** at `stream.home`, ephemeral torrent streaming inside gluetun's
+netns (`proxmox/guests/docker/jellystack.md`), and a **Project Zomboid** server
+(`proxmox/guests/docker/zomboid.md`). Players join `play.dkb.nz:16261`, which
+the OCI box in `dkbnz/dogs-and-bogs` relays here over Tailscale; this is the
+one deliberate internet-facing service, limited by tailnet policy to two UDP
+ports on one node. The Valheim server and a local LLM
+were removed 2026-10-04 (the LLM starved the host of RAM). The
 minecraft servers (both the external survival server and the local creative
 prototyping world) are no longer run from this repo; all minecraft moved to the
 cloud (2026-06-25). The
@@ -148,18 +200,24 @@ ssh homelab 'pct exec 102 -- docker compose -f <file> up -d'
 ```
 `watchtower` updates images daily at 04:00 Pacific/Auckland and prunes old images.
 
-### Backups to sdc
-`proxmox/scripts/sdc-backup.sh` runs daily at 03:30 (via `/etc/cron.d/sdc-backup`)
-and mirrors the irreplaceable data to `/mnt/sdc/backup`: CT102 `appdata` (*arr DBs +
-Jellyfin metadata + Tailscale state) and the T7's music, monitoring, and PS4
-data. It deliberately skips the raw video media (`movies`/`tv`/`downloads`, ~218GB)
-since that is redownloadable. Run on demand and check the log:
+### Backups to the SD card
+`proxmox/scripts/sdcard-backup.sh` runs daily at 03:30 (via
+`/etc/cron.d/sdcard-backup`) and mirrors the irreplaceable data to
+`/mnt/sdcard/backup`. Everything it backs up is now host-visible under `/mnt/t7`
+(CT102 `appdata` + `docker` moved to T7 bind mounts 2026-06-25), so it is a single
+`rsync` of `/mnt/t7` that keeps `appdata` (*arr DBs + Jellyfin metadata + Tailscale
+state), the music library, `monitoring`, `books`, PS4 data, and the offline
+`archive` (Kiwix ZIMs + installers, kept because the internet may not be there to
+redownload them). It deliberately
+skips what is redownloadable or regenerable: the raw video media
+(`movies`/`tv`/`downloads`, ~218GB) and `/mnt/t7/docker` (Docker image layers). Run
+on demand and check the log:
 ```shell
-ssh homelab '/usr/local/bin/sdc-backup.sh; tail -5 /var/log/sdc-backup.log'
+ssh homelab '/usr/local/bin/sdcard-backup.sh; tail -5 /var/log/sdcard-backup.log'
 ```
-To restore appdata: stop the stack, replace `/opt/jellystack/appdata` from
-`/mnt/sdc/backup/ct102-appdata`, fix ownership (`chown -R 10000:10000`, TS state dirs
-`0:0`), bring the stack back up.
+To restore appdata: stop the stack, then `rsync` `/mnt/sdcard/backup/appdata/` back
+over `/mnt/t7/appdata/` on the host (numeric ownership 110000 = container 10000 is
+preserved in the backup, so no chown is needed), bring the stack back up.
 
 ### Terraform (Backblaze B2)
 Terraform manages only the B2 backup bucket + application key. Run through the
@@ -192,17 +250,24 @@ CT 102 — see `proxmox/guests/docker/jellystack.md`).
 - `ssh homelab` is **root on the hypervisor**. A bad command takes down everything.
   Read before you destroy. Confirm destructive Proxmox actions (`qm destroy`,
   `pct destroy`, `pvesm`, disk/LVM ops, `pct set` that detaches storage) before running.
-- Host storage runs hot. `local` (the 25G root fs, holds CT 102's mp0/mp2 raw
-  disks) hit 100% on 2026-06-13; a daily `pct fstrim 102` cron now reclaims
-  deleted blocks (see `proxmox/host/README.md`). Check `ssh homelab 'pvesm status'`
-  before creating disks, restoring backups, or pulling large images.
+- Host storage runs hot. `local` (the 25G root fs) hit 100% on 2026-06-13 when it
+  held CT 102's mp0/mp2 raw disks; those moved to T7 bind mounts on 2026-06-25,
+  dropping `local` to ~19%. A daily `pct fstrim 102` cron reclaims deleted blocks
+  on the remaining LVM-thin volumes (see `proxmox/host/README.md`). Check
+  `ssh homelab 'pvesm status'` before creating disks, restoring backups, or pulling
+  large images.
 - Don't expose services to the internet. Remote access is via the Tailscale VPN
   by design — no port forwarding.
-- The Samsung T7 (ext4, `/mnt/t7`) is the data disk for CT 102 (media + monitoring
-  data). Don't reformat or repartition it without an explicit, confirmed request.
-  The USB HDD at `/mnt/sdc` holds the daily backup of the irreplaceable data
-  (appdata DBs, music, PS4 saves); the raw media is deliberately not backed up
-  (redownloadable).
+  The one exception is Project Zomboid: the OCI box relays two UDP ports to
+  the `zomboid` tailnet node, and the tailnet policy confines `tag:pz-relay`
+  to exactly those (`proxmox/guests/docker/zomboid.md`). Keep it that narrow.
+- The Samsung T7 (ext4, `/mnt/t7`) is the data disk for CT 102 (appdata, docker,
+  media, monitoring). Don't reformat or repartition it without an explicit,
+  confirmed request. The onboard SD card at `/mnt/sdcard` holds the daily backup of
+  the irreplaceable data (appdata DBs, music, PS4 saves); the raw media and the
+  Docker layers are deliberately not backed up (redownloadable / regenerable). The
+  live data is on the T7 and its only backup is the SD card, so they are the two
+  independent copies — losing both at once loses the data.
 - Snapshot/back up a guest before risky changes: `ssh homelab 'vzdump <vmid>'`.
 
 ## Quick reference

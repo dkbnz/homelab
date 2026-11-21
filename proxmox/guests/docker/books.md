@@ -80,10 +80,11 @@ Update `102-docker.conf` by hand to record the new `mp5` line.
 
 ## Backups
 
-No script change needed. `sdc-backup.sh` rsyncs all of `/mnt/t7` minus the
-redownloadable raw video media, so `/mnt/t7/books` (library + config) is captured
-in the daily 03:30 backup automatically. The Calibre library is the curated,
-hard-to-replace part — worth having in the backup set.
+No script change needed. `sdcard-backup.sh` rsyncs all of `/mnt/t7` minus the
+redownloadable raw video media and the regenerable Docker layers, so
+`/mnt/t7/books` (library + config) is captured in the daily 03:30 backup
+automatically. The Calibre library is the curated, hard-to-replace part — worth
+having in the backup set.
 
 ## Deploy
 

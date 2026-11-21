@@ -1,0 +1,40 @@
+# ZIM files kept in /mnt/t7/archive/zim by proxmox/scripts/archive-sync.sh.
+# One entry per line: <kiwix dir>/<name prefix>. The script picks the newest
+# <prefix>_YYYY-MM.zim in https://download.kiwix.org/zim/<dir>/.
+# Sizes are as of 2026-10. Removing a line does not delete the file; do that by hand.
+
+# Reference (~134G)
+wikipedia/wikipedia_en_all_maxi          # 119G, full English Wikipedia with images
+wiktionary/wiktionary_en_all_nopic       # 8.5G
+wikibooks/wikibooks_en_all_maxi          # 5.8G, textbooks
+wikivoyage/wikivoyage_en_all_maxi        # 1.0G
+
+# Medical
+other/mdwiki_en_all_maxi                 # 2.1G, WikiMed
+other/zimgit-medicine_en                 # 67M
+
+# Practical
+ifixit/ifixit_en_all                     # 3.3G, repair guides
+other/zimgit-post-disaster_en            # 615M
+other/zimgit-water_en                    # 20M
+other/zimgit-food-preparation_en         # 93M
+other/zimgit-knots_en                    # 27M
+
+# Stack Exchange: practical + science (~9.6G)
+stack_exchange/diy.stackexchange.com_en_all
+stack_exchange/electronics.stackexchange.com_en_all
+stack_exchange/gardening.stackexchange.com_en_all
+stack_exchange/cooking.stackexchange.com_en_all
+stack_exchange/mechanics.stackexchange.com_en_all
+stack_exchange/outdoors.stackexchange.com_en_all
+stack_exchange/woodworking.stackexchange.com_en_all
+stack_exchange/ham.stackexchange.com_en_all
+stack_exchange/sustainability.stackexchange.com_en_all
+stack_exchange/chemistry.stackexchange.com_en_all
+stack_exchange/physics.stackexchange.com_en_all
+
+# Computing (~7.5G)
+stack_exchange/superuser.com_en_all
+stack_exchange/askubuntu.com_en_all
+stack_exchange/unix.stackexchange.com_en_all
+other/archlinux_en_all_maxi

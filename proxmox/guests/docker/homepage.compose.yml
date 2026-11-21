@@ -1,0 +1,36 @@
+# Homepage dashboard on CT 102: one tile per service, with live widgets.
+# Notes: homepage.md. Deployed at /opt/homepage/compose.yml in CT 102.
+#
+# Config is the YAML in proxmox/guests/docker/homepage/, copied to
+# /opt/homepage/config (CT rootfs; git is the backup). Credentials are
+# HOMEPAGE_VAR_* in homepage.env (encrypted via transcrypt).
+#
+# Deploy:  docker compose -f /opt/homepage/compose.yml up -d
+services:
+  # =========================================================
+  #   Web UI: http://home.home  (direct: http://192.168.1.30:3020)
+  # Joins jellystack_default so widgets can reach jellyfin, sonarr, etc. by
+  # container name; those ports aren't all published to the host.
+  # =========================================================
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    env_file:
+      - homepage.env
+    environment:
+      - TZ=Pacific/Auckland
+      - HOMEPAGE_ALLOWED_HOSTS=home.home,192.168.1.30:3020
+      - LOG_TARGETS=stdout
+    volumes:
+      - ./config:/app/config
+    ports:
+      - 3020:3000
+    networks:
+      - default
+      - jellystack
+    restart: unless-stopped
+
+networks:
+  jellystack:
+    external: true
+    name: jellystack_default

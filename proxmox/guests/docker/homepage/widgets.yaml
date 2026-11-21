@@ -1,0 +1,11 @@
+# Top bar widgets. "resources" shows the homepage container's view of CT 102.
+- resources:
+    cpu: true
+    memory: true
+    label: CT 102
+- datetime:
+    text_size: md
+    format:
+      dateStyle: medium
+      timeStyle: short
+      hour12: false

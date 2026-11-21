@@ -1,0 +1,48 @@
+# Valheim dedicated server on CT 102, native x86_64 with PlayFab crossplay.
+# Notes: valheim.md. Deployed at /opt/valheim/compose.yml in CT 102.
+#
+# The same world (Berwick) also runs on the OCI box under box64 (dkbnz/dogs-and-bogs).
+# This copy was taken 2026-10-03; the two diverge from that point.
+#
+# Deploy:  docker compose -f /opt/valheim/compose.yml up -d
+services:
+  valheim:
+    image: ghcr.io/lloesche/valheim-server:latest
+    container_name: valheim
+    restart: unless-stopped
+    # Crossplay never binds the Steam socket on 2456; players join by 6-digit
+    # code through PlayFab, which relays through Starlink's CGNAT. No port
+    # forwarding. Host networking avoids a second NAT layer in front of PlayFab.
+    network_mode: host
+    env_file:
+      - valheim.env          # SERVER_PASS (encrypted via transcrypt)
+    environment:
+      - TZ=Pacific/Auckland
+      - PUID=10000           # host uid 110000, same as appdata
+      - PGID=10000
+      - SERVER_NAME=Berwick (homelab)
+      - WORLD_NAME=Berwick
+      - SERVER_PORT=2456
+      - SERVER_PUBLIC=true
+      # Modifiers match the OCI server. They are also stored in the world file.
+      - SERVER_ARGS=-crossplay -modifier resources muchmore -modifier portals casual -saveinterval 300
+      # Game updates: check daily at 05:00, only when no one is connected.
+      # A restart issues a new join code.
+      - UPDATE_CRON=0 5 * * *
+      - UPDATE_IF_IDLE=true
+      # Hourly zips of worlds_local into /config/backups (on T7, mirrored to the SD card).
+      - BACKUPS_CRON=0 * * * *
+      - BACKUPS_MAX_COUNT=24
+      - BACKUPS_IF_IDLE=false
+    volumes:
+      - /opt/valheim/data/config:/config        # worlds_local, adminlist, backups
+      - /opt/valheim/data/server:/opt/valheim   # game files (~2 GB, steamcmd target)
+    labels:
+      # Image updates restart the server and rotate the join code. The image
+      # updates the game files itself (UPDATE_CRON), so watchtower stays off.
+      - com.centurylinklabs.watchtower.enable=false
+    cpus: 3.0
+    mem_limit: 6g
+    # Valheim saves on SIGINT. The image's supervisor handles SIGTERM and saves,
+    # but give it time to finish.
+    stop_grace_period: 120s

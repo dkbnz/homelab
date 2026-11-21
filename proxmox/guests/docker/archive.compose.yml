@@ -1,0 +1,42 @@
+# Offline archive on CT 102: Kiwix (Wikipedia, Stack Exchange, iFixit, ...)
+# plus a read-only file browser. Notes: archive.md.
+# Deployed at /opt/archive/compose.yml in CT 102.
+#
+# Data is host /mnt/t7/archive, bound into CT 102 as mp8 /opt/archive/data:
+#   zim/         Kiwix ZIM files, filled by proxmox/scripts/archive-sync.sh (host cron)
+#   maps/        NZ OSM extract + phone map files
+#   installers/  offline installers (Kiwix/Organic Maps apps, `docker save` tarballs)
+# All of it is mirrored to the SD card by sdcard-backup.sh (no exclude).
+#
+# Deploy:  docker compose -f /opt/archive/compose.yml up -d
+services:
+  # =========================================================
+  # kiwix-serve - serves every ZIM in /data with a shared search page.
+  #   Web UI: http://wiki.home  (direct: http://192.168.1.30:8088)
+  # It reads the file list at startup only; archive-sync.sh restarts it after
+  # adding or replacing a ZIM.
+  # =========================================================
+  kiwix:
+    image: ghcr.io/kiwix/kiwix-serve:latest
+    container_name: kiwix
+    command: "*.zim"
+    volumes:
+      - ./data/zim:/data:ro
+    ports:
+      - 8088:8080
+    restart: unless-stopped
+
+  # =========================================================
+  # Read-only file browser over the whole archive, so the ZIMs, maps and
+  # installers can be copied to phones/laptops without the internet.
+  #   Web UI: http://files.home  (direct: http://192.168.1.30:8087)
+  # =========================================================
+  files:
+    image: caddy:2
+    container_name: archive-files
+    command: caddy file-server --browse --root /srv --listen :80
+    volumes:
+      - ./data:/srv:ro
+    ports:
+      - 8087:80
+    restart: unless-stopped

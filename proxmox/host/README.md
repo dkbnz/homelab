@@ -78,13 +78,15 @@ lvextend -l +100%FREE pve/root && resize2fs /dev/mapper/pve-root
 
 ## fstrim (daily, 04:30)
 
-`/etc/cron.d/fstrim-ct102` runs `pct fstrim 102` daily. CT 102's mp0/mp2 are
-raw files on the root SSD; without trim, deleted blocks stay materialized in
-the files and the host root fills. It hit 100% twice: once before the cron
-existed (trim reclaimed ~7G), and again on 2026-06-13 despite the then-weekly
-cadence (appdata DB churn + watchtower's daily image pulls re-fill ~1GB/day;
-trim reclaimed 5.7G). Daily now. The trim also returns rootfs blocks to the
-local-lvm thin pool.
+`/etc/cron.d/fstrim-ct102` runs `pct fstrim 102` daily. Historically CT 102's
+mp0/mp2 were raw files on the root SSD (`local`); without trim, deleted blocks
+stayed materialized in the files and the host root filled. It hit 100% twice:
+once before the cron existed (trim reclaimed ~7G), and again on 2026-06-13 despite
+the then-weekly cadence (appdata DB churn + watchtower's daily image pulls re-fill
+~1GB/day; trim reclaimed 5.7G). On 2026-06-25 mp0/mp2 moved to T7 bind mounts, so
+`local` no longer holds those raws and the worst of the pressure is gone. The daily
+trim is kept anyway: it returns CT 102's 4G rootfs blocks to the `local-lvm` thin
+pool.
 
 ```
 30 4 * * * root /usr/sbin/pct fstrim 102 >/dev/null
@@ -105,3 +107,26 @@ fstrim in the same window.
 ```
 15 4 * * * root /usr/local/bin/jellyfin-cache-prune.sh >/dev/null 2>&1
 ```
+
+## Wi-Fi clients losing .10/.20/.30 (not a homelab fault)
+
+Seen 2026-07-11 and several times on 2026-10-04: the Mac (on Wi-Fi) loses one or
+more homelab IPs while every guest is healthy and wired hosts reach them fine.
+Cause: from the Mac, *every* homelab IP (.10/.20/.30/.40) resolves to one MAC,
+`b2:be:76:07:f8:39`, which does not exist on the wired side (the host sees the
+Mac's real MAC and no such device). A Wi-Fi node between the Mac and the LAN (mesh
+node / extender doing MAC translation) answers ARP for wired hosts, and its table
+goes bad.
+
+- Quick fix: `pct exec <ct> -- ping -c2 <client-ip>` (or `ping` from the host for
+  .10). An ARP request from the guest to the client repairs it.
+- Gratuitous ARP (`arping -U`) from the guest does not fix it.
+- A 2-minute cron ARP-sweeping the /24 from .10/.20/.30 was tried 2026-10-04 and
+  removed within the hour: shortly after it went in, all four IPs dropped at
+  once. Don't flood that node.
+- Real fix: connect the client to the Starlink router's own Wi-Fi or wire it,
+  or replace the node.
+
+The Mac's key (`doug@dkb.nz`) is in `/root/.ssh/authorized_keys` on CT 101 and
+CT 102, so `ssh root@192.168.1.20` / `.30` work when the host's address is the
+one that has dropped. Tailscale (subnet router on CT 102) is another way in.
