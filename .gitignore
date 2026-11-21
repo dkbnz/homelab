@@ -5,3 +5,9 @@ data
 config
 .claude/
 .playwright-mcp/
+
+# Local clutter
+.DS_Store
+*.swp
+.swp
+.ralph/
