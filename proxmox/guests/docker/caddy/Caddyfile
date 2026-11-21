@@ -101,6 +101,9 @@ http://proxmox.home {
 http://homeassistant.home {
     reverse_proxy 192.168.1.40:8123   # HA trusts .30 as proxy (http: block)
 }
+http://extrude.home {
+    reverse_proxy 192.168.1.50:5000   # OctoPrint on the Orange Pi Lite (Ender 3 V2 Neo)
+}
 
 # Services Hermes creates write one <name>.caddy file each into /opt/hermes/caddy
 # (mounted here read-only). See hermes.md.

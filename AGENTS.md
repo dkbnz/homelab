@@ -35,6 +35,12 @@ device name.
 
 All guests were created with the [community Proxmox helper scripts](https://community-scripts.github.io/ProxmoxVE/).
 
+Other LAN hosts managed from this repo (not Proxmox guests):
+
+| Host    | Address        | Purpose                                                    |
+|---------|----------------|------------------------------------------------------------|
+| extrude | `192.168.1.50` | Orange Pi Lite (Armbian, Wi-Fi only) running OctoPrint for the Ender 3 V2 Neo. `http://extrude.home`. See `devices/extrude/README.md` |
+
 ## Access
 
 - `ssh homelab` connects to the **Proxmox host as root** (`192.168.1.10`).
@@ -44,6 +50,8 @@ All guests were created with the [community Proxmox helper scripts](https://comm
   - `qm guest exec 100 -- <cmd>` runs in the HAOS VM (qemu-guest-agent is enabled).
 - The LXCs also have direct IPs (`.20`, `.30`) if you prefer to SSH them directly,
   but going through the host with `pct exec` needs no extra credentials.
+- `ssh root@192.168.1.50` reaches **extrude** (OctoPrint) with the Mac's
+  `id_ed25519` key. Passwords are in `devices/extrude/extrude.env`.
 
 ## Repo layout
 
@@ -100,6 +108,9 @@ proxmox/                 Current Proxmox state (source of truth)
                          pve.yml ENCRYPTED via transcrypt)
   scripts/snapshot.sh    Pull live guest/app config back into the repo
   scripts/archive-sync.sh  Monthly refresh of the Kiwix ZIM archive (host cron)
+devices/                 Standalone LAN hosts (not Proxmox guests)
+  extrude/               OctoPrint on an Orange Pi Lite: README, install script,
+                         netplan + credentials (ENCRYPTED via transcrypt)
 terraform/               Backblaze B2 backup bucket + key (state encrypted)
 ansible/                 Optional: install Docker + deploy stacks onto a host
 services/                Deployable docker compose stacks (not all currently running)
@@ -142,6 +153,8 @@ minecraft servers (both the external survival server and the local creative
 prototyping world) are no longer run from this repo; all minecraft moved to the
 cloud (2026-06-25). The
 Proxmox host itself runs bare-metal node_exporter + pve-exporter (`proxmox/host/`).
+Off the Proxmox box, **extrude** (`192.168.1.50`) runs OctoPrint for the 3D printer
+(`devices/extrude/README.md`); Caddy on CT 102 serves it as `extrude.home`.
 The `services/` stacks are defined but **not deployed**. The root `docker-compose-service.yml` is a superseded
 earlier *arr stack, kept for reference only — jellystack
 (`proxmox/guests/docker/jellystack.md`) is the real one. Verify with

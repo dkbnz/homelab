@@ -4,3 +4,4 @@ terraform.tf*  filter=crypt diff=crypt merge=crypt
 *.env  filter=crypt diff=crypt merge=crypt
 AdGuardHome.yaml  filter=crypt diff=crypt merge=crypt
 pve.yml  filter=crypt diff=crypt merge=crypt
+30-wifis-static.yaml  filter=crypt diff=crypt merge=crypt

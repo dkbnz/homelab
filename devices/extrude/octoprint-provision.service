@@ -1,0 +1,17 @@
+[Unit]
+Description=One-time OctoPrint install
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/root/provision/install.sh
+
+[Service]
+Type=exec
+ExecStart=/bin/bash /root/provision/install.sh
+StandardOutput=append:/root/octoprint-provision.log
+StandardError=append:/root/octoprint-provision.log
+TimeoutStartSec=infinity
+Restart=on-failure
+RestartSec=120
+
+[Install]
+WantedBy=multi-user.target
